@@ -241,3 +241,38 @@ Based on our experiences and learnings, future development will focus on:
    - More formatting options (SRT, plain text, etc.)
    - Improved navigation through long transcripts
    - Better integration with Claude's workflow
+
+## Major Updates
+
+### April 2025: Enhanced API Key Management and Mock Mode
+
+#### Changes
+1. **Improved API Key Management**
+   - Added support for loading API keys from config.py in addition to environment variables
+   - Implemented a priority system: constructor parameters > config.py > environment variables
+   - Added config.py to .gitignore for security
+
+2. **Mock Mode for Testing and Demonstration**
+   - Implemented a mock mode that generates realistic search results when no API key is available
+   - Added clear notifications when mock mode is active
+   - This allows testing and demonstration without requiring API keys
+
+3. **Better Error Handling**
+   - Improved error messaging for missing API keys
+   - Added comprehensive testing for various API key scenarios
+   - Created test_api_key.py to verify API key configuration
+
+#### Technical Design
+- **Multi-source Configuration**: The SearchAPIClient now tries multiple sources for API keys
+- **Graceful Degradation**: When API keys are missing, the system falls back to mock mode instead of failing
+- **Separation of Concerns**: Moved API key validation logic to the client constructor for better modularity
+- **Mock Result Generation**: Added _generate_mock_results method that creates structured responses mimicking real API responses
+
+#### Benefits
+- **Developer Experience**: Easier local development with config.py instead of environment variables
+- **Demonstration Capabilities**: Ability to show fact-checking features without real API keys
+- **Testing Improvements**: More comprehensive testing of search functionality
+- **Security**: Better protection of API keys from accidental exposure
+
+### Previous Updates
+*(Add previous updates here as the project evolves)*

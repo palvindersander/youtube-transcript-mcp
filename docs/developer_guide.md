@@ -466,8 +466,13 @@ The fact-checking implementation follows these key principles:
 The search API integration is implemented in `search_api.py` with these key components:
 
 1. **Configuration Management**
-   - API keys are loaded from environment variables (SEARCH_API_KEY)
-   - Lazy initialization avoids errors if API key not set
+   - API keys can be loaded from multiple sources, with the following precedence:
+     1. Directly provided to the constructor
+     2. From `config.py` in the project root
+     3. From environment variables (SEARCH_API_KEY)
+   - This multi-source approach allows for flexible configuration in different environments
+   - The config.py file is excluded from version control via .gitignore
+   - Lazy initialization avoids errors if API key is not set
    - Configurable endpoint to support different search providers
 
 2. **Search Client Design**
@@ -614,7 +619,11 @@ Test types include:
 
 When working with the fact-checking components:
 
-1. **API Keys**: Store API keys in environment variables, never commit them to the repo
+1. **API Keys**:
+   - Store API keys in `config.py` or environment variables, never commit them to the repo
+   - Use the provided `test_api_key.py` script to verify your API key configuration
+   - When developing locally, prefer using `config.py` for convenience
+   - For CI/CD or deployment environments, use environment variables
 2. **Error Handling**: Always use specific exception types and provide helpful error messages
 3. **Result Formatting**: Maintain consistent JSON structures for Claude to parse
 4. **Testing**: Write tests for new components and run existing tests after changes

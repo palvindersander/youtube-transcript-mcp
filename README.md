@@ -418,10 +418,26 @@ The claim that "AI will replace all programmers by 2025" is not supported by cur
 The search functionality requires a search API key. To configure this:
 
 1. Get an API key from a search provider (default implementation uses Serper.dev)
-2. Set the environment variable `SEARCH_API_KEY` with your API key:
+2. Set the API key in one of these ways:
+   - **Recommended - Create a config file**: 
+     Create a `config.py` file in the project root with:
+     ```python
+     # Serper.dev API key
+     SEARCH_API_KEY = "your_api_key_here"
+     ```
+     This file is already in .gitignore to ensure your API key isn't committed to version control.
+   
+   - **Alternative - Use environment variable**:
+     Set the environment variable `SEARCH_API_KEY`:
+     ```
+     export SEARCH_API_KEY=your_api_key_here
+     ```
+
+3. Verify your configuration works:
    ```
-   export SEARCH_API_KEY=your_api_key_here
+   python3 test_api_key.py
    ```
+   This will test if your API key is being correctly detected from config.py or environment variables.
 
 #### Mock Mode for Testing
 
@@ -460,7 +476,17 @@ python3 test_transcript.py [video_id] [language_code]
 python3 test_chapter_markers.py [video_id]
 python3 test_statistics.py [video_id]
 python3 test_top_chapter_markers.py [video_id] [language_code]
+python3 test_missing_api_key.py
+python3 test_api_key.py
 ```
+
+Testing scripts for specific features:
+- `test_transcript.py` - Tests basic transcript retrieval
+- `test_chapter_markers.py` - Tests chapter marker extraction
+- `test_statistics.py` - Tests video statistics retrieval
+- `test_top_chapter_markers.py` - Tests the chapter markers at the top of transcript feature
+- `test_missing_api_key.py` - Tests error handling and mock mode when no API key is available
+- `test_api_key.py` - Tests if your API key configuration is working correctly
 
 Notes:
 - Always run test scripts with `python3` rather than making them executable
