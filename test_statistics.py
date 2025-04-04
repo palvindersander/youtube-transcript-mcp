@@ -11,7 +11,6 @@ from transcript_lib import (
     get_video_id,
     get_video_metadata,
     get_video_statistics,
-    get_chapter_markers,
     TranscriptError
 )
 
@@ -88,19 +87,6 @@ def main():
                 log_message(log_file, "Upload date: Not available")
         except Exception as e:
             log_message(log_file, f"Error fetching statistics: {e}")
-        
-        # Get and display chapter markers
-        log_message(log_file, "\n--- Chapter Markers ---")
-        try:
-            chapters = get_chapter_markers(video_id)
-            if chapters:
-                log_message(log_file, f"Found {len(chapters)} chapter markers:")
-                for i, chapter in enumerate(chapters, 1):
-                    log_message(log_file, f"{i}. [{chapter['start_time_formatted']}] {chapter['title']}")
-            else:
-                log_message(log_file, "No chapter markers found for this video.")
-        except Exception as e:
-            log_message(log_file, f"Error fetching chapter markers: {e}")
         
         log_message(log_file, f"\nResults saved to {log_path}")
         return 0
