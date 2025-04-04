@@ -55,13 +55,16 @@ classDiagram
         +get_transcript()
         +get_video_metadata()
         +list_transcript_languages()
+        +get_chapter_markers()
     }
     
     class TranscriptLib {
         +get_video_id()
         +get_video_metadata()
+        +get_video_statistics()
         +get_available_languages()
         +get_transcript()
+        +get_chapter_markers()
         +format_transcript_text()
         +format_transcript_json()
     }
@@ -108,13 +111,25 @@ sequenceDiagram
         Lib->>YT_API: Request to YouTube page
         YT_API-->>Lib: HTML content
         Lib-->>MCP_Server: Formatted metadata
+        
+        MCP_Server->>Lib: get_video_statistics(video_id)
+        Lib->>YT_API: Request to YouTube page
+        YT_API-->>Lib: HTML content
+        Lib-->>MCP_Server: Video statistics
+    end
+    
+    alt Include Chapters
+        MCP_Server->>Lib: get_chapter_markers(video_id)
+        Lib->>YT_API: Request to YouTube page
+        YT_API-->>Lib: HTML content
+        Lib-->>MCP_Server: Formatted chapter markers
     end
     
     MCP_Server->>Lib: get_transcript(video_id, language)
     Lib->>YT_API: Request transcript
     YT_API-->>Lib: Raw transcript segments
-    Lib->>Lib: format_transcript_text(segments)
-    Lib-->>MCP_Server: Formatted transcript with timestamps
+    MCP_Server->>Lib: format_transcript_text(segments, chapters)
+    Lib-->>MCP_Server: Formatted transcript with timestamps and chapters
     MCP_Server-->>Claude: Complete response
     Claude-->>User: Display transcript
 ```
@@ -123,14 +138,14 @@ sequenceDiagram
 
 1. **MCP Server Layer (`transcript_mcp.py`)**
    - Implements the MCP protocol interface using FastMCP
-   - Exposes tools for transcript and metadata retrieval
+   - Exposes tools for transcript, metadata, statistics, and chapter markers retrieval
    - Handles parameter parsing and response formatting
 
 2. **Transcript Library (`transcript_lib.py`)**
    - Core business logic for transcript processing
    - Handles video ID extraction
-   - Fetches transcript data and metadata
-   - Formats transcript text with timestamps
+   - Fetches transcript data, metadata, statistics, and chapter markers
+   - Formats transcript text with timestamps and chapter markers
 
 3. **External Dependencies**
    - `youtube-transcript-api`: Primary engine for fetching transcript data
@@ -140,6 +155,8 @@ sequenceDiagram
 4. **Testing Infrastructure**
    - `test_transcript.py`: Tests the transcript functionality with logging
    - `test_metadata.py`: Specialized for testing metadata extraction
+   - `test_chapter_markers.py`: Tests the chapter markers extraction functionality
+   - `test_statistics.py`: Tests video statistics retrieval
 
 ## Implementation Insights
 
@@ -212,6 +229,74 @@ This algorithm:
 1. Tracks the current accumulated duration
 2. Merges segments until the ~10 second threshold is reached
 3. Preserves the original start time for accurate timestamping
+
+### Chapter Markers Extraction
+
+One of the more complex new features is the extraction of chapter markers from YouTube videos:
+
+1. **Multiple Extraction Methods**
+   - YouTube doesn't provide a dedicated API for chapters
+   - We use several methods to maximize chances of success
+   - Each method targets a different way YouTube might store chapter data
+
+2. **Extraction Strategy**
+   - First try to extract from the description (common user-created format)
+   - Then look for structured data in various JSON objects in the page
+   - Fall back to parsing the player response JSON
+   - Finally check for structured LD+JSON metadata
+
+3. **Integration with Transcript**
+   - Chapters are inserted at appropriate timestamps in the transcript
+   - This helps users navigate long transcripts more easily
+   - Each chapter marker is clearly distinguished from the transcript text
+
+Code example for chapter-aware transcript formatting:
+
+```python
+def format_transcript_text(transcript, chapters=None):
+    # ... existing transcript formatting code ...
+    
+    # Add any chapters that should appear before this line
+    if chapters:
+        while (next_chapter_index < len(chapters) and 
+               chapters[next_chapter_index]['start_time'] <= line_time):
+            
+            chapter = chapters[next_chapter_index]
+            chapter_line = f"\n[CHAPTER] {chapter['start_time_formatted']} - {chapter['title']}\n"
+            chapter_lines.append((line_time, chapter_line))
+            next_chapter_index += 1
+    
+    # ... rest of formatting code ...
+```
+
+### Video Statistics Extraction
+
+To enhance the metadata with usage statistics:
+
+1. **Extraction Approach**
+   - Statistics are extracted directly from the YouTube page HTML
+   - We use regex patterns to find view counts, likes, and upload date
+   - These are paired with the basic metadata for a complete picture
+
+2. **Resilient Design**
+   - Statistics extraction is designed to be non-critical
+   - Failures in statistics don't prevent the rest of the functionality
+   - Each statistic is extracted independently
+
+```python
+def get_video_statistics(video_id):
+    # ... fetch page content ...
+    
+    # Extract view count
+    view_count_match = re.search(r'"viewCount":\s*"(\d+)"', html_content)
+    if view_count_match:
+        views = int(view_count_match.group(1))
+        stats["views"] = f"{views:,}"
+    
+    # ... extract other statistics ...
+    
+    return stats
+```
 
 ## MCP Protocol Integration
 

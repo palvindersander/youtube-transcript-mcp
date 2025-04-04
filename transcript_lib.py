@@ -91,6 +91,59 @@ def get_video_metadata(video_id: str) -> Dict[str, Any]:
     
     return metadata
 
+def get_video_statistics(video_id: str) -> Dict[str, Any]:
+    """Fetch video statistics (view count, likes, upload date).
+    
+    Args:
+        video_id: YouTube video ID
+        
+    Returns:
+        Dictionary with statistics
+        
+    Raises:
+        TranscriptError: If unable to fetch statistics
+    """
+    stats = {
+        "views": None,
+        "likes": None,
+        "upload_date": None
+    }
+    
+    try:
+        watch_url = f"https://www.youtube.com/watch?v={video_id}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        response = requests.get(watch_url, headers=headers)
+        response.raise_for_status()
+        
+        html_content = response.text
+        
+        # Extract view count
+        view_count_match = re.search(r'"viewCount":\s*"(\d+)"', html_content)
+        if view_count_match:
+            views = int(view_count_match.group(1))
+            # Format with commas
+            stats["views"] = f"{views:,}"
+        
+        # Extract like count
+        like_count_match = re.search(r'"likeCount":\s*"(\d+)"', html_content)
+        if like_count_match:
+            likes = int(like_count_match.group(1))
+            # Format with commas
+            stats["likes"] = f"{likes:,}"
+        
+        # Extract upload date
+        upload_date_match = re.search(r'"uploadDate":\s*"([^"]+)"', html_content)
+        if upload_date_match:
+            stats["upload_date"] = upload_date_match.group(1)
+        
+        return stats
+    except Exception as e:
+        # Don't raise an exception - stats are non-critical
+        return stats
+
 def get_available_languages(video_id: str) -> List[Dict[str, str]]:
     """Get list of available transcript languages for a video.
     

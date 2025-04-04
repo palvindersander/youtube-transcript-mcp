@@ -27,8 +27,22 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
                 result += f"--- Video Metadata ---\n"
                 result += f"Title: {metadata['title']}\n"
                 result += f"Author: {metadata['author']}\n"
-                result += f"Channel URL: {metadata['channel_url']}\n\n"
-                result += f"Description:\n{metadata['description']}\n\n"
+                result += f"Channel URL: {metadata['channel_url']}\n"
+                
+                # Get video statistics if available
+                try:
+                    stats = tlib.get_video_statistics(video_id)
+                    if stats.get('views'):
+                        result += f"View count: {stats['views']}\n"
+                    if stats.get('likes'):
+                        result += f"Likes: {stats['likes']}\n"
+                    if stats.get('upload_date'):
+                        result += f"Upload date: {stats['upload_date']}\n"
+                except Exception:
+                    # Skip statistics if not available
+                    pass
+                
+                result += f"\nDescription:\n{metadata['description']}\n\n"
                 result += "--- Transcript ---\n"
             except tlib.TranscriptError as e:
                 result += f"Error fetching metadata: {str(e)}\n\n"
@@ -45,11 +59,12 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
         return f"Unexpected error: {str(e)}"
 
 @mcp.tool()
-async def get_video_metadata(url: str) -> str:
+async def get_video_metadata(url: str, include_statistics: bool = True) -> str:
     """Get metadata for a YouTube video.
     
     Args:
         url: YouTube video URL or ID
+        include_statistics: Whether to include view count, likes, and other stats
     """
     try:
         # Extract video ID from URL
@@ -63,8 +78,25 @@ async def get_video_metadata(url: str) -> str:
         result += f"Title: {metadata['title']}\n"
         result += f"Author: {metadata['author']}\n" 
         result += f"Channel URL: {metadata['channel_url']}\n"
-        result += f"Thumbnail URL: {metadata['thumbnail_url']}\n\n"
-        result += f"Description:\n{metadata['description']}"
+        result += f"Thumbnail URL: {metadata['thumbnail_url']}\n"
+        
+        # Include statistics if requested
+        if include_statistics:
+            try:
+                stats = tlib.get_video_statistics(video_id)
+                if stats:
+                    result += "\n--- Video Statistics ---\n"
+                    if stats.get('views'):
+                        result += f"View count: {stats['views']}\n"
+                    if stats.get('likes'):
+                        result += f"Likes: {stats['likes']}\n"
+                    if stats.get('upload_date'):
+                        result += f"Upload date: {stats['upload_date']}\n"
+            except Exception:
+                # Skip statistics if there's an error
+                pass
+        
+        result += f"\nDescription:\n{metadata['description']}"
         
         return result
     except tlib.TranscriptError as e:

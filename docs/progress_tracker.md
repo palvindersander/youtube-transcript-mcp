@@ -15,15 +15,26 @@
   - [x] Video description parsing
   - [x] Thumbnail URL retrieval
   - [x] Hybrid approach combining oEmbed API and HTML parsing
+  - [x] Video statistics extraction (views, likes, upload date)
+
+- [x] **Chapter Markers**
+  - [x] Extract chapter markers from YouTube videos
+  - [x] Multiple extraction methods for maximum reliability
+  - [x] Integrated chapter display in transcripts
+  - [x] Standalone chapter marker retrieval tool
+  - [x] Chapter-aware transcript formatting
 
 - [x] **MCP Server Implementation**
   - [x] `get_transcript` tool with metadata integration
   - [x] `get_video_metadata` tool for metadata-only requests
   - [x] `list_transcript_languages` tool for language discovery
+  - [x] `get_chapter_markers` tool for chapter retrieval
   - [x] Parameter handling for customization
 
 - [x] **Testing & Logging**
   - [x] Command-line test scripts for transcript and metadata
+  - [x] Test script for chapter markers extraction
+  - [x] Test script for video statistics
   - [x] Detailed logging with timestamps
   - [x] JSON and text output formats
   - [x] Organized log file storage
@@ -47,7 +58,9 @@ The YouTube Transcript MCP Server is fully functional with the following capabil
 
 - Fetch transcripts from any YouTube video that has captions
 - Display transcripts with ~10 second merged segments for improved readability
-- Retrieve and include video metadata (title, author, description)
+- Retrieve and include comprehensive video metadata (title, author, description)
+- Extract video statistics (view count, likes, upload date)
+- Identify and display chapter markers within videos
 - Support multiple languages when available
 - MCP integration with Claude Desktop
 
