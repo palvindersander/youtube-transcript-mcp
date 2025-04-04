@@ -9,6 +9,7 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 
 ### Project Status
 - [Progress Tracker](progress_tracker.md) - Current status, completed features, and roadmap
+- [Project Updates](project_updates.md) - Major architectural changes and learnings
 
 ### Technical Documentation
 - [Developer Guide](developer_guide.md) - Comprehensive guide for developers working on the codebase
@@ -19,7 +20,8 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 - `transcript_lib.py` - Core library with transcript processing functionality
 - `transcript_mcp.py` - MCP server implementation exposing tools to Claude
 - `test_transcript.py` - Test script for transcript functionality
-- `test_metadata.py` - Test script for metadata extraction
+- `test_chapter_markers.py` - Test script for chapter markers extraction
+- `test_statistics.py` - Test script for video statistics extraction
 
 #### Configuration
 - `requirements.txt` - Python package dependencies
@@ -44,7 +46,8 @@ The YouTube Transcript MCP server aims to provide a bridge between YouTube's tra
 
 - Fetch transcripts from any YouTube video with captions
 - Merge transcript segments into readable chunks with timestamps
-- Extract video metadata (title, author, description)
+- Extract video metadata (title, author, description) and statistics
+- Include chapter markers in transcripts for better navigation
 - Support for multiple languages
 - MCP integration with Claude Desktop
 - Comprehensive logging and testing tools 
