@@ -47,17 +47,24 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
             except tlib.TranscriptError as e:
                 result += f"Error fetching metadata: {str(e)}\n\n"
         
-        # Get transcript
-        transcript = tlib.get_transcript(video_id, language_code)
-        
         # Get chapters if requested
         chapters = None
         if include_chapters:
             try:
                 chapters = tlib.get_chapter_markers(video_id)
+                
+                # Add chapter markers at the top
+                if chapters:
+                    result += f"--- Chapter Markers ---\n"
+                    for chapter in chapters:
+                        result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
+                    result += "\n"
             except Exception:
                 # Continue without chapters if there's an error
                 pass
+        
+        # Get transcript
+        transcript = tlib.get_transcript(video_id, language_code)
         
         # Format with timestamps in ~10 second intervals and include chapters if available
         result += tlib.format_transcript_text(transcript, chapters)
