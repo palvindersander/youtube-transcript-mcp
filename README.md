@@ -49,15 +49,19 @@ classDiagram
         +get_transcript()
         +get_video_metadata()
         +list_transcript_languages()
+        +identify_transcript_speakers()
     }
     
     class TranscriptLib {
         +get_video_id()
         +get_video_metadata()
+        +get_video_statistics()
         +get_available_languages()
         +get_transcript()
         +format_transcript_text()
         +format_transcript_json()
+        +identify_speakers()
+        +format_transcript_with_speakers()
     }
     
     class YouTubeTranscriptAPI {
@@ -162,41 +166,79 @@ Or:
 
 ## Available Tools
 
-1. `get_transcript(url, language_code=None, include_metadata=True)`
+1. `get_transcript(url, language_code=None, include_metadata=True, identify_speakers=False, speaker_hints=None)`
    - Fetches a transcript for a YouTube video with timestamps in ~10 second intervals
    - Arguments:
      - `url`: YouTube video URL or ID
      - `language_code` (optional): Language code (e.g., 'en', 'es')
      - `include_metadata` (optional): Whether to include video metadata (default: True)
+     - `identify_speakers` (optional): Whether to identify speakers in the transcript (default: False)
+     - `speaker_hints` (optional): List of speaker names to look for (default: None)
    - Returns:
-     - Video metadata (title, author, description) if requested
-     - Transcript with timestamps in a format like:
-       ```
-       [00:00] This is the first segment of transcript text merged into 10 second chunks
-       [00:10] This is the next segment of transcript text
-       ```
+     - Video metadata (title, author, channel URL, view count, etc.) if requested
+     - Identified speakers with statistics if speaker identification is enabled
+     - Transcript with timestamps and speaker labels if applicable
 
-2. `get_video_metadata(url)`
+2. `get_video_metadata(url, include_statistics=True)`
    - Fetches metadata for a YouTube video
    - Arguments:
      - `url`: YouTube video URL or ID
+     - `include_statistics` (optional): Whether to include video statistics (default: True)
    - Returns:
      - Video title
      - Author/channel name
      - Channel URL
      - Thumbnail URL
      - Video description
+     - View count
 
 3. `list_transcript_languages(url)`
    - Lists available transcript languages for a YouTube video
    - Arguments:
      - `url`: YouTube video URL or ID
 
+4. `identify_transcript_speakers(url, language_code=None, speaker_hints=None)`
+   - Identifies potential speakers in a YouTube video transcript
+   - Arguments:
+     - `url`: YouTube video URL or ID
+     - `language_code` (optional): Language code (e.g., 'en', 'es')
+     - `speaker_hints` (optional): List of speaker names to look for
+   - Returns:
+     - List of identified speakers with statistics
+     - Transcript with speaker labels in a format like:
+       ```
+       [00:00] <John> Welcome to our discussion on artificial intelligence.
+       [00:10] <Sarah> Thanks for having me, John.
+       ```
+
 ## Transcript Format
 
 The transcript is formatted with timestamps in approximately 10-second intervals. Short segments are merged until they reach about 10 seconds in duration. Each line is prefixed with a timestamp in `[MM:SS]` format.
 
 This format makes it easier to follow along with the video and reference specific parts of the content.
+
+When speaker identification is enabled, the transcript format includes speaker labels:
+
+```
+[00:00] <John> Welcome to our discussion on artificial intelligence.
+[00:05] <Sarah> Thanks for having me, John. I'm excited to discuss this topic.
+[00:12] This technology is transforming industries worldwide.
+[00:18] <John> What are some of the biggest developments recently?
+```
+
+Speaker labels are enclosed in angle brackets and positioned between the timestamp and the text. Segments without an identified speaker just show the timestamp and text.
+
+## Speaker Identification
+
+The server can attempt to identify speakers in transcript text, which is particularly useful for interviews, panel discussions, and other multi-speaker content.
+
+Speaker identification works by:
+- Looking for common speaker label formats in the text (e.g., "John:", "[Sarah]", "(Host)")
+- Extracting and organizing these labels
+- Associating them with the correct transcript segments
+- Providing statistics about each speaker's participation
+
+This is a best-effort approach that relies on the transcript text already containing speaker labels. It doesn't use audio analysis to identify unlabeled speakers.
 
 ## Video Metadata
 
@@ -239,3 +281,13 @@ The log file contains:
 - Raw transcript data in JSON format (with precise timing information)
 - List of available languages
 - Timestamp and video metadata
+
+### Testing Speaker Identification
+
+You can test the speaker identification with the provided sample data:
+
+```
+python3 test_with_sample_data.py
+```
+
+This will demonstrate how the speaker identification works with a sample transcript containing various speaker label formats.
