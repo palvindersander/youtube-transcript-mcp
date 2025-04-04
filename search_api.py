@@ -12,6 +12,12 @@ import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
+# Try to import the API key from config file
+try:
+    from config import SEARCH_API_KEY as CONFIG_API_KEY
+except ImportError:
+    CONFIG_API_KEY = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -30,10 +36,11 @@ class SearchAPIClient:
         """Initialize the search API client.
         
         Args:
-            api_key: API key for the search service. If None, will try to load from environment variable.
+            api_key: API key for the search service. If None, will try to load from config or environment variable.
             mock_mode: If True, will use mock responses instead of making actual API calls when no API key is available.
         """
-        self.api_key = api_key or os.environ.get("SEARCH_API_KEY")
+        # Try API key from params, then config file, then environment variable
+        self.api_key = api_key or CONFIG_API_KEY or os.environ.get("SEARCH_API_KEY")
         self.mock_mode = mock_mode
         
         if not self.api_key and not self.mock_mode:
@@ -199,20 +206,28 @@ class SearchAPIClient:
         # Perform the search
         results = await self.search(query)
         
-        # Add a second search for direct information about the claim
-        direct_query = claim
-        direct_results = await self.search(direct_query)
+        # Add a note if using mock mode
+        if self.mock_mode:
+            results["mock_mode"] = True
         
-        # Combine results
-        combined_results = {
+        # Format results for fact checking
+        formatted_results = {
             "claim": claim,
             "context": context,
+            "timestamp": datetime.now().isoformat(),
             "fact_check_results": results,
-            "information_results": direct_results,
-            "mock_mode": self.mock_mode
+            "information_results": {}  # Will be filled with additional info in a real scenario
         }
         
-        return combined_results
+        # Add a second search for just information (not fact checking)
+        try:
+            info_query = claim
+            info_results = await self.search(info_query)
+            formatted_results["information_results"] = info_results
+        except Exception as e:
+            logger.warning(f"Information search failed, continuing with fact check only: {str(e)}")
+        
+        return formatted_results
         
 # Helper function to create a new instance with default settings
 def create_search_client(api_key: Optional[str] = None, mock_mode: bool = False) -> SearchAPIClient:
