@@ -50,6 +50,7 @@ classDiagram
         +get_video_metadata()
         +list_transcript_languages()
         +get_chapter_markers()
+        +identify_transcript_speakers()
     }
     
     class TranscriptLib {
@@ -61,6 +62,8 @@ classDiagram
         +get_chapter_markers()
         +format_transcript_text()
         +format_transcript_json()
+        +identify_speakers()
+        +format_transcript_with_speakers()
     }
     
     class YouTubeTranscriptAPI {
@@ -108,14 +111,19 @@ sequenceDiagram
     YouTube-->>TranscriptLib: Return page content
     TranscriptLib-->>MCPServer: Return chapter markers
     
+    opt Identify Speakers
+        MCPServer->>TranscriptLib: identify_speakers(transcript)
+        TranscriptLib-->>MCPServer: Return transcript with speaker labels
+    end
+    
     MCPServer->>TranscriptLib: get_transcript(video_id)
     TranscriptLib->>YouTube: Request transcript
     YouTube-->>TranscriptLib: Return raw transcript
     TranscriptLib-->>MCPServer: Return transcript segments
     MCPServer->>TranscriptLib: format_transcript_text(transcript, chapters)
-    TranscriptLib-->>MCPServer: Return formatted transcript with chapters
+    TranscriptLib-->>MCPServer: Return formatted transcript with chapters and speakers
     MCPServer-->>Claude: Return complete response
-    Claude-->>User: Display transcript with metadata, statistics, and chapters
+    Claude-->>User: Display transcript with metadata, statistics, chapters, and speakers
 ```
 
 ## Project Status and Roadmap
@@ -176,27 +184,20 @@ Or:
 
 ## Available Tools
 
-1. `get_transcript(url, language_code=None, include_metadata=True, include_chapters=True)`
+1. `get_transcript(url, language_code=None, include_metadata=True, include_chapters=True, identify_speakers=False, speaker_hints=None)`
    - Fetches a transcript for a YouTube video with timestamps in ~10 second intervals
    - Arguments:
      - `url`: YouTube video URL or ID
      - `language_code` (optional): Language code (e.g., 'en', 'es')
      - `include_metadata` (optional): Whether to include video metadata (default: True)
      - `include_chapters` (optional): Whether to include chapter markers in the transcript (default: True)
+     - `identify_speakers` (optional): Whether to identify speakers in the transcript (default: False)
+     - `speaker_hints` (optional): List of speaker names to look for (default: None)
    - Returns:
      - Video metadata (title, author, channel URL, view count, etc.) if requested
      - Chapter markers if available and requested
-     - Transcript with timestamps and chapter markers in a format like:
-       ```
-       [CHAPTER] 00:00 - Introduction
-       
-       [00:00] This is the first segment of transcript text merged into 10 second chunks
-       [00:10] This is the next segment of transcript text
-       
-       [CHAPTER] 01:30 - Main Topic
-       
-       [01:30] This is where the main topic begins
-       ```
+     - Identified speakers with statistics if speaker identification is enabled
+     - Transcript with timestamps, chapter markers, and speaker labels as applicable
 
 2. `get_video_metadata(url, include_statistics=True)`
    - Fetches metadata and statistics for a YouTube video
@@ -225,11 +226,36 @@ Or:
    - Returns:
      - List of chapter markers with timestamps and titles, or a message if no chapters are found
 
+5. `identify_transcript_speakers(url, language_code=None, speaker_hints=None)`
+   - Identifies potential speakers in a YouTube video transcript
+   - Arguments:
+     - `url`: YouTube video URL or ID
+     - `language_code` (optional): Language code (e.g., 'en', 'es')
+     - `speaker_hints` (optional): List of speaker names to look for
+   - Returns:
+     - List of identified speakers with statistics
+     - Transcript with speaker labels in a format like:
+       ```
+       [00:00] <John> Welcome to our discussion on artificial intelligence.
+       [00:10] <Sarah> Thanks for having me, John.
+       ```
+
 ## Transcript Format
 
 The transcript is formatted with timestamps in approximately 10-second intervals. Short segments are merged until they reach about 10 seconds in duration. Each line is prefixed with a timestamp in `[MM:SS]` format.
 
 When chapter markers are available and included, they are inserted at appropriate positions in the transcript with a format like `[CHAPTER] MM:SS - Chapter Title`. This makes it easier to navigate through the content.
+
+When speaker identification is enabled, the transcript format includes speaker labels:
+
+```
+[00:00] <John> Welcome to our discussion on artificial intelligence.
+[00:05] <Sarah> Thanks for having me, John. I'm excited to discuss this topic.
+[00:12] This technology is transforming industries worldwide.
+[00:18] <John> What are some of the biggest developments recently?
+```
+
+Speaker labels are enclosed in angle brackets and positioned between the timestamp and the text. Segments without an identified speaker just show the timestamp and text.
 
 ## Video Metadata and Statistics
 
@@ -253,6 +279,18 @@ Chapter markers are segments of a video defined by the video creator. The server
 - A formatted time string (HH:MM:SS or MM:SS)
 
 Chapter markers can be included directly in the transcript to provide additional context and structure, or retrieved separately using the `get_chapter_markers` tool.
+
+## Speaker Identification
+
+The server can attempt to identify speakers in transcript text, which is particularly useful for interviews, panel discussions, and other multi-speaker content.
+
+Speaker identification works by:
+- Looking for common speaker label formats in the text (e.g., "John:", "[Sarah]", "(Host)")
+- Extracting and organizing these labels
+- Associating them with the correct transcript segments
+- Providing statistics about each speaker's participation
+
+This is a best-effort approach that relies on the transcript text already containing speaker labels. It doesn't use audio analysis to identify unlabeled speakers.
 
 ## Testing
 
@@ -296,7 +334,7 @@ python3 test_chapter_markers.py https://www.youtube.com/watch?v=pvkTC2xIbeY
 And video statistics retrieval with:
 
 ```
-python3 test_statistics.py https://www.youtube.com/watch?v=pvkTC2xIbeY
+python3 test_statistics.py https://www.youtube.com/watch?v=ELj2LLNP8Ak
 ```
 
 For more detailed analysis, you can add the debug flag to the chapter markers test:
@@ -305,12 +343,18 @@ For more detailed analysis, you can add the debug flag to the chapter markers te
 python3 test_chapter_markers.py https://www.youtube.com/watch?v=pvkTC2xIbeY --debug
 ```
 
-### Testing Video Statistics
+### Testing Speaker Identification
 
-You can test the video statistics retrieval with:
+You can test the speaker identification with the provided sample data:
 
 ```
-python3 test_statistics.py https://www.youtube.com/watch?v=ELj2LLNP8Ak
+python3 test_with_sample_data.py
 ```
 
-The test will display basic metadata and statistics for the video, including view count, likes (if available), and upload date.
+This will demonstrate how the speaker identification works with a sample transcript containing various speaker label formats.
+
+You can also test it with a real YouTube video (if it has speaker labels in the transcript):
+
+```
+python3 test_speaker_identification.py <youtube_url>
+```
