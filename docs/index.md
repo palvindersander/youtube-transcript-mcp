@@ -9,7 +9,7 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 
 ### Project Status
 - [Progress Tracker](progress_tracker.md) - Current status, completed features, and roadmap
-- [Project Updates](project_updates.md) - Major architectural changes and learnings
+- [Project Updates](project_updates.md) - Major architectural changes and development history
 
 ### Technical Documentation
 - [Developer Guide](developer_guide.md) - Comprehensive guide for developers working on the codebase
@@ -30,6 +30,18 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 #### Output
 - `logs/` - Directory for log files with transcript results
 
+## Core Features
+
+- **Transcript Retrieval**: Fetch and format transcripts from YouTube videos
+- **Chapter Markers**: Extract and display chapter markers within transcripts
+- **Video Metadata**: Retrieve comprehensive video information
+- **Video Statistics**: Extract view counts, likes, and upload dates
+- **Language Support**: Access transcripts in multiple languages
+
+## Retired Features
+
+For information about features that were implemented but later removed, see the [Project Updates](project_updates.md#feature-speaker-identification-implemented--later-removed) document and the [Retired Features](progress_tracker.md#retired-features) section in the Progress Tracker.
+
 ## Getting Started
 
 To get started with using or developing the YouTube Transcript MCP server, follow these steps:
@@ -37,12 +49,13 @@ To get started with using or developing the YouTube Transcript MCP server, follo
 1. Read the [README](../README.md) for installation and setup instructions
 2. Check the [Progress Tracker](progress_tracker.md) to understand the current state of the project
 3. For development, refer to the [Developer Guide](developer_guide.md)
+4. Review [Project Updates](project_updates.md) to understand architectural decisions
 
 ## Project Vision
 
 The YouTube Transcript MCP server aims to provide a bridge between YouTube's transcript data and Claude, enabling rich conversational interactions around video content. Future enhancements will focus on adding richer transcript processing, additional metadata, and advanced analysis capabilities.
 
-## Key Features
+## Current Capabilities
 
 - Fetch transcripts from any YouTube video with captions
 - Merge transcript segments into readable chunks with timestamps
@@ -50,4 +63,13 @@ The YouTube Transcript MCP server aims to provide a bridge between YouTube's tra
 - Include chapter markers in transcripts for better navigation
 - Support for multiple languages
 - MCP integration with Claude Desktop
-- Comprehensive logging and testing tools 
+- Comprehensive logging and testing tools
+
+## Recent Updates
+
+- Removed speaker identification functionality due to limited effectiveness
+- Added comprehensive documentation about architectural decisions
+- Simplified codebase by focusing on core functionality
+- Improved project documentation organization
+
+For more detailed information about recent changes, see the [Recent Updates](progress_tracker.md#recent-updates) section in the Progress Tracker. 
