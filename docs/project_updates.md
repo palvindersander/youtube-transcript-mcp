@@ -138,6 +138,72 @@ The following changes were made to remove the speaker identification functionali
 3. **Consider Requirements Carefully**: True speaker identification would require more sophisticated approaches like audio analysis.
 4. **Maintain Simplicity**: Removing unnecessary features simplified the codebase, making it more maintainable.
 
+## Feature: Fact-Checking Integration (Latest)
+
+### Background
+As users increasingly rely on AI systems like Claude to analyze video content, there's a growing need for tools that help verify information presented in videos. To address this need, we implemented a fact-checking feature that enables Claude to verify claims made in YouTube videos.
+
+### Implementation
+The fact-checking feature provides a set of deterministic tools for Claude to use when verifying claims:
+
+1. Search integration for finding verification information
+2. Transcript segment extraction for analyzing specific parts of videos
+3. Claim finding through exact and fuzzy matching
+
+The implementation follows a key design principle: keeping the MCP server purely deterministic while allowing Claude to perform all AI-based analysis and reasoning.
+
+### Key Components Added
+1. **New Files**:
+   - `search_api.py`: Client for web search API integration
+   - `transcript_segment.py`: Utilities for transcript segment extraction and claim finding
+   - `test_fact_checking.py`: Test script for the fact-checking feature
+   - `docs/fact_checking_design.md`: Detailed design documentation
+
+2. **New MCP Tools in transcript_mcp.py**:
+   - `search_for_claim_verification()`: Searches for information about claims
+   - `extract_transcript_segment()`: Extracts transcript segments around timestamps
+   - `find_claim_in_transcript()`: Locates specific claims in transcripts
+
+3. **Architectural Changes**:
+   - Added modular search client with API-agnostic design
+   - Implemented fuzzy matching for claim identification
+   - Added support for environment-based configuration
+
+### Development Guidelines
+1. **API Key Management**: Search API keys are managed via environment variables
+2. **Result Formatting**: Search results are structured as JSON for Claude to parse
+3. **Error Handling**: Comprehensive error handling for search API limitations and failures
+
+### Architectural Decisions
+
+1. **Separation of Concerns**:
+   - MCP Server: Provides deterministic tools for data retrieval and processing
+   - Claude: Performs all LLM-based analysis, summarization, and fact-checking
+   - Search API: Modular component with clear interface for future expansion
+
+2. **Search Integration Approach**:
+   - Selected Serper.dev as the default search provider due to its reliability and structure
+   - Designed search client to be easily adaptable to other providers
+   - Implemented structured result formatting optimized for Claude's analysis
+
+3. **Transcript Analysis**:
+   - Created dedicated utilities for transcript segment extraction
+   - Implemented timestamp conversion functions
+   - Added fuzzy matching for more flexible claim finding
+
+### Learnings
+1. **Deterministic Boundaries**: Maintaining a clear boundary between the deterministic MCP server and Claude's AI capabilities ensures a clean architecture that leverages the strengths of both components.
+
+2. **Search Quality Impact**: The quality of fact-checking results depends significantly on the search provider and query formulation. Implementing a dual-search approach (direct query + "fact check" prefixed query) yields more comprehensive results.
+
+3. **Context Matters**: Providing sufficient context around claims is crucial for accurate verification. The segment extraction tool with configurable context window addresses this need.
+
+4. **Fuzzy Matching Value**: Exact claim matching often fails due to variations in wording. Fuzzy matching based on word overlap significantly improves claim location success rates.
+
+5. **JSON Formatting**: Structured JSON results make it easier for Claude to analyze and reason about verification data compared to text-only responses.
+
+6. **Modularity Benefits**: The modular design with separate files for search and segment extraction makes the codebase more maintainable and allows for focused testing of each component.
+
 ## Initial Project Implementation
 
 ### Core Features

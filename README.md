@@ -21,13 +21,26 @@ graph TD
     Server -->|Return Data| MCP
     MCP -->|Display Results| Claude
     
+    %% New fact-checking components
+    Server -->|Search Request| SearchAPI[Search API Client]
+    SearchAPI -->|Query| Web[Web Search]
+    Web -->|Results| SearchAPI
+    SearchAPI -->|Formatted Results| Server
+    
+    Server -->|Segment Request| SegmentLib[Transcript Segment]
+    YTLib -->|Transcript Data| SegmentLib
+    SegmentLib -->|Extracted Segment| Server
+    
     subgraph "Transcript Server"
         Server
         YTLib
+        SearchAPI
+        SegmentLib
     end
     
     subgraph "External Services"
         YT
+        Web
     end
     
     subgraph "Client"
@@ -50,6 +63,9 @@ classDiagram
         +get_video_metadata()
         +list_transcript_languages()
         +get_chapter_markers()
+        +search_for_claim_verification()
+        +extract_transcript_segment()
+        +find_claim_in_transcript()
     }
     
     class TranscriptLib {
@@ -63,6 +79,19 @@ classDiagram
         +format_transcript_json()
     }
     
+    class SearchAPIClient {
+        +search()
+        +search_for_claim_verification()
+    }
+    
+    class TranscriptSegment {
+        +timestamp_to_seconds()
+        +seconds_to_timestamp()
+        +find_transcript_segment()
+        +extract_transcript_segment()
+        +find_claim_in_transcript()
+    }
+    
     class YouTubeTranscriptAPI {
         +get_transcript()
         +list_transcripts()
@@ -72,10 +101,18 @@ classDiagram
         +message
     }
     
+    class SearchAPIError {
+        +message
+    }
+    
     FastMCP <|-- TranscriptMCPServer : extends
     TranscriptMCPServer --> TranscriptLib : uses
+    TranscriptMCPServer --> SearchAPIClient : uses
+    TranscriptMCPServer --> TranscriptSegment : uses
     TranscriptLib --> YouTubeTranscriptAPI : uses
     TranscriptLib --> TranscriptError : throws
+    SearchAPIClient --> SearchAPIError : throws
+    TranscriptSegment --> TranscriptLib : uses
 ```
 
 ### Request Flow Sequence
@@ -116,6 +153,66 @@ sequenceDiagram
     TranscriptLib-->>MCPServer: Return formatted transcript with chapters
     MCPServer-->>Claude: Return complete response
     Claude-->>User: Display transcript with metadata, statistics, and chapters
+```
+
+### Fact-Checking Request Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Claude
+    participant MCPServer
+    participant TranscriptLib
+    participant SearchAPI
+    participant TranscriptSegment
+    participant YouTube
+    participant WebSearch
+    
+    User->>Claude: Request transcript & summarize
+    Claude->>MCPServer: get_transcript(url)
+    MCPServer->>TranscriptLib: Get transcript & metadata
+    TranscriptLib->>YouTube: Fetch data
+    YouTube-->>TranscriptLib: Return data
+    TranscriptLib-->>MCPServer: Return formatted data
+    MCPServer-->>Claude: Return transcript
+    Claude-->>User: Display transcript & summary
+    
+    User->>Claude: Request fact check for claim
+    Claude->>Claude: Identify claim to check
+    
+    alt Find Claim Location
+        Claude->>MCPServer: find_claim_in_transcript(url, claim)
+        MCPServer->>TranscriptLib: get_transcript(url)
+        TranscriptLib->>YouTube: Fetch transcript
+        YouTube-->>TranscriptLib: Return transcript
+        TranscriptLib-->>MCPServer: Return transcript data
+        MCPServer->>TranscriptSegment: find_claim_in_transcript(transcript, claim)
+        TranscriptSegment-->>MCPServer: Return claim location & context
+        MCPServer-->>Claude: Return claim context
+    end
+    
+    alt Get Transcript Segment
+        Claude->>MCPServer: extract_transcript_segment(url, timestamp)
+        MCPServer->>TranscriptSegment: extract_transcript_segment(url, timestamp)
+        TranscriptSegment->>TranscriptLib: get_transcript(url)
+        TranscriptLib->>YouTube: Fetch transcript
+        YouTube-->>TranscriptLib: Return transcript
+        TranscriptLib-->>TranscriptSegment: Return transcript data
+        TranscriptSegment-->>MCPServer: Return segment with context
+        MCPServer-->>Claude: Return formatted segment
+    end
+    
+    Claude->>MCPServer: search_for_claim_verification(claim, context)
+    MCPServer->>SearchAPI: search_for_claim_verification(claim, context)
+    SearchAPI->>WebSearch: Search for fact check
+    WebSearch-->>SearchAPI: Return search results
+    SearchAPI->>WebSearch: Search for direct information
+    WebSearch-->>SearchAPI: Return search results
+    SearchAPI-->>MCPServer: Return combined, formatted results
+    MCPServer-->>Claude: Return structured search data
+    
+    Claude->>Claude: Analyze verification data
+    Claude->>User: Present fact check results
 ```
 
 ## Project Status and Roadmap

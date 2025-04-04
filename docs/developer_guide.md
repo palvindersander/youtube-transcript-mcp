@@ -56,6 +56,9 @@ classDiagram
         +get_video_metadata()
         +list_transcript_languages()
         +get_chapter_markers()
+        +search_for_claim_verification()
+        +extract_transcript_segment()
+        +find_claim_in_transcript()
     }
     
     class TranscriptLib {
@@ -67,6 +70,19 @@ classDiagram
         +get_chapter_markers()
         +format_transcript_text()
         +format_transcript_json()
+    }
+    
+    class TranscriptSegment {
+        +timestamp_to_seconds()
+        +seconds_to_timestamp()
+        +find_transcript_segment()
+        +extract_transcript_segment()
+        +find_claim_in_transcript()
+    }
+    
+    class SearchAPIClient {
+        +search()
+        +search_for_claim_verification()
     }
     
     class YouTubeTranscriptAPI {
@@ -82,11 +98,19 @@ classDiagram
         +message
     }
     
+    class SearchAPIError {
+        +message
+    }
+    
     FastMCP <|-- TranscriptMCPServer : extends
     TranscriptMCPServer --> TranscriptLib : uses
+    TranscriptMCPServer --> TranscriptSegment : uses
+    TranscriptMCPServer --> SearchAPIClient : uses
     TranscriptLib --> YouTubeTranscriptAPI : uses for transcripts
     TranscriptLib --> Requests : uses for metadata
     TranscriptLib --> TranscriptError : throws
+    SearchAPIClient --> SearchAPIError : throws
+    TranscriptSegment --> TranscriptLib : uses
 ```
 
 ### Data Flow Sequence
@@ -140,6 +164,7 @@ sequenceDiagram
    - Implements the MCP protocol interface using FastMCP
    - Exposes tools for transcript, metadata, statistics, and chapter markers retrieval
    - Handles parameter parsing and response formatting
+   - Provides fact-checking tools (added in latest version)
 
 2. **Transcript Library (`transcript_lib.py`)**
    - Core business logic for transcript processing
@@ -147,15 +172,27 @@ sequenceDiagram
    - Fetches transcript data, metadata, statistics, and chapter markers
    - Formats transcript text with timestamps and chapter markers
 
-3. **External Dependencies**
+3. **Search API Client (`search_api.py`)**
+   - Implements web search functionality for fact checking
+   - Provides structured search results formatting
+   - Handles API authentication and error management
+
+4. **Transcript Segment Utilities (`transcript_segment.py`)**
+   - Provides timestamp conversion and segment extraction
+   - Implements claim finding with exact and fuzzy matching
+   - Handles contextual segment analysis
+
+5. **External Dependencies**
    - `youtube-transcript-api`: Primary engine for fetching transcript data
    - `requests`: Used for metadata retrieval through YouTube's oEmbed API
+   - `aiohttp`: Used for asynchronous search API requests
    - `mcp`: Framework for building MCP-compatible servers
 
-4. **Testing Infrastructure**
+6. **Testing Infrastructure**
    - `test_transcript.py`: Tests the transcript functionality with logging
    - `test_chapter_markers.py`: Tests the chapter markers extraction functionality
    - `test_statistics.py`: Tests video statistics retrieval
+   - `test_fact_checking.py`: Tests the fact-checking functionality
 
 ## Implementation Insights
 
@@ -397,5 +434,163 @@ Refer to the [Project Updates](project_updates.md) document for a history of maj
    - Review these logs to verify changes and understand behavior
 
 ### Code Organization
+
+// ... existing code ... 
+
+## Fact-Checking Implementation
+
+The fact-checking feature is implemented as a set of deterministic tools that help Claude verify information from YouTube videos. This section covers the design principles, component details, and development considerations for fact-checking.
+
+### Design Principles
+
+The fact-checking implementation follows these key principles:
+
+1. **Deterministic Tools, AI Analysis**
+   - The MCP server provides only deterministic tools for data retrieval
+   - Claude performs all AI-based analysis, summarization, and reasoning
+   - Clear separation of responsibilities leverages the strengths of both components
+
+2. **Modular Architecture**
+   - Each fact-checking component is implemented in a separate module with a clear interface
+   - Components can be tested, maintained, and upgraded independently
+   - New search providers or transcript analysis methods can be added easily
+
+3. **Structured Data Flow**
+   - Data passed between components uses consistent, well-defined structures
+   - JSON format enables Claude to easily parse and reason about verification data
+
+### Search API Integration
+
+#### Architecture
+
+The search API integration is implemented in `search_api.py` with these key components:
+
+1. **Configuration Management**
+   - API keys are loaded from environment variables (SEARCH_API_KEY)
+   - Lazy initialization avoids errors if API key not set
+   - Configurable endpoint to support different search providers
+
+2. **Search Client Design**
+   - `SearchAPIClient` class handles authentication, requests, and result formatting
+   - Asynchronous implementation with `aiohttp` for efficient network requests
+   - Comprehensive error handling with custom `SearchAPIError` exception
+
+3. **Result Formatting**
+   - Raw search results are transformed into a consistent, structured format
+   - Knowledge graph data extraction when available
+   - Temporal information (published dates) is preserved for context
+
+#### Search Strategy
+
+The fact-checking search uses a dual-query approach:
+
+1. **Fact Check Query**: Appends "fact check" to the claim to find explicit fact-checking sources
+2. **Information Query**: Searches directly for the claim to gather general information
+3. **Combined Results**: Both result sets are returned to Claude for comprehensive analysis
+
+```python
+# Example of the dual-query strategy
+query = f"fact check \"{claim}\""
+results = await self.search(query)
+direct_query = claim
+direct_results = await self.search(direct_query)
+```
+
+#### Error Handling
+
+Search API errors are handled at multiple levels:
+
+1. **Network Errors**: Caught and wrapped in `SearchAPIError` with context
+2. **API Errors**: HTTP status codes and response bodies are processed
+3. **Missing API Key**: Checked before making requests to provide clear error message
+
+### Transcript Segment Extraction
+
+#### Timestamp Utilities
+
+Timestamp conversion functions are implemented in `transcript_segment.py`:
+
+1. **timestamp_to_seconds()**: Converts MM:SS or HH:MM:SS format to seconds
+2. **seconds_to_timestamp()**: Converts seconds back to human-readable format
+3. **Robust Validation**: Input validation with helpful error messages
+
+#### Segment Extraction
+
+The segment extraction functionality finds relevant parts of a transcript:
+
+1. **Time-Based Extraction**: Extracts segments around a specific timestamp
+2. **Context Window**: Configurable context_seconds parameter determines how much context to include
+3. **Metadata Enrichment**: Adds video metadata and chapter information to segment output
+
+#### Claim Finding
+
+The claim finding functionality uses both exact and fuzzy matching:
+
+1. **Exact Matching**: Finds claims that match exactly in the transcript
+2. **Fuzzy Matching**: Uses word overlap scoring to find approximate matches
+3. **Confidence Scoring**: Provides a match confidence score for fuzzy matches
+
+```python
+# Example of fuzzy matching
+claim_words = set(normalized_claim.split())
+text_words = set(text.split())
+common_words = claim_words.intersection(text_words)
+match_score = len(common_words) / len(claim_words)
+```
+
+### MCP Tool Implementation
+
+The fact-checking MCP tools are implemented in `transcript_mcp.py`:
+
+1. **search_for_claim_verification()**: Searches for information to verify claims
+2. **extract_transcript_segment()**: Extracts transcript segments around timestamps
+3. **find_claim_in_transcript()**: Locates specific claims in transcripts
+
+Each tool follows these implementation patterns:
+
+1. **Clear Documentation**: Comprehensive docstrings with parameter descriptions
+2. **Error Handling**: Try/except blocks with specific error types
+3. **Structured Output**: Consistent, well-formatted output for Claude to parse
+
+### Testing Fact-Checking
+
+The `test_fact_checking.py` script provides comprehensive testing:
+
+1. **Component Testing**: Each fact-checking component can be tested individually
+2. **Integration Testing**: Complete flow from claim to verification can be tested
+3. **Logging**: Detailed logs of each step in the fact-checking process
+
+To test the fact-checking feature:
+
+```bash
+python3 test_fact_checking.py <youtube_url_or_id> "claim to verify" [test_type]
+```
+
+Test types include:
+- `all`: Run all fact-checking tests (default)
+- `segment`: Test transcript segment extraction
+- `search`: Test search for claim verification
+- `find`: Test finding claim in transcript
+
+### Development Guidelines
+
+When working with the fact-checking components:
+
+1. **API Keys**: Store API keys in environment variables, never commit them to the repo
+2. **Error Handling**: Always use specific exception types and provide helpful error messages
+3. **Result Formatting**: Maintain consistent JSON structures for Claude to parse
+4. **Testing**: Write tests for new components and run existing tests after changes
+5. **Dependency Management**: Add any new dependencies to requirements.txt
+6. **Documentation**: Update function docstrings and add comments for complex logic
+
+### Adding New Search Providers
+
+To add a new search provider:
+
+1. Modify the `SearchAPIClient` class to support the new provider
+2. Create a new endpoint configuration option
+3. Update the result formatting to handle the provider's response format
+4. Add error handling specific to the provider
+5. Update documentation to reflect the new provider option
 
 // ... existing code ... 
