@@ -7,94 +7,60 @@ mcp = FastMCP("transcript")
 
 @mcp.tool()
 async def get_transcript(url: str, language_code: Optional[str] = None, include_metadata: bool = True, 
-                         include_chapters: bool = True, identify_speakers: bool = False, 
-                         speaker_hints: Optional[List[str]] = None) -> str:
+                         include_chapters: bool = True) -> str:
     """Get the transcript for a YouTube video with timestamps in ~10 second intervals.
     
     Args:
         url: YouTube video URL or ID
-        language_code: Optional language code (e.g., 'en', 'es', 'fr')
-        include_metadata: Whether to include video metadata in the response
-        include_chapters: Whether to include chapter markers in the transcript
-        identify_speakers: Whether to attempt to identify speakers in the transcript
-        speaker_hints: Optional list of speaker names to look for in the transcript
+        language_code: Optional language code (e.g., 'en', 'es')
+        include_metadata: Whether to include video metadata (default: True)
+        include_chapters: Whether to include chapter markers in the transcript (default: True)
     """
     try:
         # Extract video ID from URL
         video_id = tlib.get_video_id(url)
-        
         result = ""
         
-        # Include metadata if requested
+        # Add metadata if requested
         if include_metadata:
             try:
                 metadata = tlib.get_video_metadata(video_id)
+                stats = tlib.get_video_statistics(video_id)
+                
                 result += f"--- Video Metadata ---\n"
                 result += f"Title: {metadata['title']}\n"
                 result += f"Author: {metadata['author']}\n"
                 result += f"Channel URL: {metadata['channel_url']}\n"
                 
-                # Get video statistics if available
-                try:
-                    stats = tlib.get_video_statistics(video_id)
-                    if stats.get('views'):
-                        result += f"View count: {stats['views']}\n"
-                    if stats.get('likes'):
+                if stats:
+                    if stats['views']:
+                        result += f"Views: {stats['views']}\n"
+                    if stats['likes']:
                         result += f"Likes: {stats['likes']}\n"
-                    if stats.get('upload_date'):
+                    if stats['upload_date']:
                         result += f"Upload date: {stats['upload_date']}\n"
-                except Exception:
-                    # Skip statistics if not available
-                    pass
                 
-                result += f"\nDescription:\n{metadata['description']}\n\n"
+                if metadata.get('description'):
+                    result += f"\nDescription:\n{metadata['description']}\n"
                 
-                # Include chapters section if requested and available
-                if include_chapters:
-                    try:
-                        chapters = tlib.get_chapter_markers(video_id)
-                        if chapters:
-                            result += f"--- Chapters ---\n"
-                            for chapter in chapters:
-                                result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
-                            result += "\n"
-                    except Exception:
-                        # Skip chapters section if not available
-                        pass
-                
-                result += "--- Transcript ---\n"
+                result += "\n"
             except tlib.TranscriptError as e:
                 result += f"Error fetching metadata: {str(e)}\n\n"
         
         # Get transcript
         transcript = tlib.get_transcript(video_id, language_code)
         
-        # Process transcript based on requested features
-        if identify_speakers:
-            # Identify speakers
-            transcript_with_speakers, speakers = tlib.identify_speakers(transcript, speaker_hints)
-            
-            # Add speaker information to the output
-            if speakers:
-                result += f"--- Identified Speakers ({len(speakers)}) ---\n"
-                for speaker, occurrences in speakers.items():
-                    result += f"- {speaker}: {len(occurrences)} segments\n"
-                result += "\n"
-                
-            # Format with timestamps and speakers
-            result += tlib.format_transcript_with_speakers(transcript_with_speakers)
-        else:
-            # Get chapters if requested (for non-speaker identification mode)
-            chapters = None
-            if include_chapters:
-                try:
-                    chapters = tlib.get_chapter_markers(video_id)
-                except Exception:
-                    # Continue without chapters if there's an error
-                    pass
-            
-            # Format with timestamps in ~10 second intervals and include chapters if available
-            result += tlib.format_transcript_text(transcript, chapters)
+        # Get chapters if requested
+        chapters = None
+        if include_chapters:
+            try:
+                chapters = tlib.get_chapter_markers(video_id)
+            except Exception:
+                # Continue without chapters if there's an error
+                pass
+        
+        # Format with timestamps in ~10 second intervals and include chapters if available
+        result += tlib.format_transcript_text(transcript, chapters)
             
         return result
     except tlib.TranscriptError as e:
@@ -201,52 +167,6 @@ async def get_chapter_markers(url: str) -> str:
         for chapter in chapters:
             result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
             
-        return result
-    except tlib.TranscriptError as e:
-        return f"Error: {str(e)}"
-    except Exception as e:
-        return f"Unexpected error: {str(e)}"
-
-@mcp.tool()
-async def identify_transcript_speakers(url: str, language_code: Optional[str] = None, speaker_hints: Optional[List[str]] = None) -> str:
-    """Identify potential speakers in a YouTube video transcript.
-    
-    Args:
-        url: YouTube video URL or ID
-        language_code: Optional language code (e.g., 'en', 'es', 'fr')
-        speaker_hints: Optional list of speaker names to look for in the transcript
-    """
-    try:
-        # Extract video ID from URL
-        video_id = tlib.get_video_id(url)
-        
-        # Get metadata
-        try:
-            metadata = tlib.get_video_metadata(video_id)
-            result = f"--- Video Metadata ---\n"
-            result += f"Title: {metadata['title']}\n"
-            result += f"Author: {metadata['author']}\n\n"
-        except tlib.TranscriptError as e:
-            result = f"Error fetching metadata: {str(e)}\n\n"
-        
-        # Get transcript
-        transcript = tlib.get_transcript(video_id, language_code)
-        
-        # Identify speakers
-        transcript_with_speakers, speakers = tlib.identify_speakers(transcript, speaker_hints)
-        
-        # Report on identified speakers
-        if speakers:
-            result += f"--- Identified Speakers ({len(speakers)}) ---\n"
-            for speaker, occurrences in speakers.items():
-                result += f"- {speaker}: {len(occurrences)} segments\n"
-        else:
-            result += "No speakers identified using pattern matching.\n"
-        
-        # Format transcript with speakers
-        result += "\n--- Transcript with Speaker Labels ---\n"
-        result += tlib.format_transcript_with_speakers(transcript_with_speakers)
-        
         return result
     except tlib.TranscriptError as e:
         return f"Error: {str(e)}"
