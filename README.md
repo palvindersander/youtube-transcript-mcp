@@ -423,6 +423,20 @@ The search functionality requires a search API key. To configure this:
    export SEARCH_API_KEY=your_api_key_here
    ```
 
+#### Important Note About Missing API Keys
+
+If no API key is configured, the search-based fact-checking tools will return an error message:
+```
+Error: No Search API key configured
+```
+
+When using Claude, this error will be clearly visible in the response, allowing Claude to explain to the user that a search API key is needed to perform fact-checking. This behavior is intentional - the MCP server remains functional for transcript retrieval even if search functionality is unavailable.
+
+To test API key error handling, you can run:
+```
+python3 test_missing_api_key.py
+```
+
 ## Testing
 
 You can test the core functionality with the included test scripts:

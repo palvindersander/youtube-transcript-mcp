@@ -504,6 +504,22 @@ Search API errors are handled at multiple levels:
 2. **API Errors**: HTTP status codes and response bodies are processed
 3. **Missing API Key**: Checked before making requests to provide clear error message
 
+#### Missing API Key Handling
+
+The search functionality is designed to fail gracefully when no API key is configured:
+
+1. **Early Detection**: The `SearchAPIClient` checks for a missing API key before attempting any requests
+2. **Clear Error Message**: Raises a specific `SearchAPIError` with the message "No Search API key configured"
+3. **MCP Layer Handling**: The MCP server catches this error and returns a formatted error message to Claude
+4. **User Communication**: Claude can interpret this error and explain to the user that a search API key is needed
+
+This behavior has several benefits:
+- Users can still use transcript features without search functionality
+- Clear error messages make troubleshooting easier
+- The system remains secure by not exposing sensitive error details
+
+For testing this error handling, use the `test_missing_api_key.py` script which reproduces the error condition and verifies that it's handled correctly.
+
 ### Transcript Segment Extraction
 
 #### Timestamp Utilities
