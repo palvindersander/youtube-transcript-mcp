@@ -45,12 +45,25 @@
   - [x] Architectural diagrams (system overview, component structure, sequence)
   - [x] Developer guide with implementation insights
   - [x] Project structure documentation
+  - [x] Comprehensive project updates documentation
+  - [x] Feature implementation and removal details
 
-- [x] **Project Structure**
+- [x] **Project Structure & Maintenance**
   - [x] Flattened directory organization
   - [x] Separated log storage
   - [x] Clean module imports
   - [x] Proper error classes
+  - [x] Codebase cleanup and simplification
+  - [x] Feature evaluation and pruning of ineffective functionality
+
+## Retired Features
+
+- [x] **Speaker Identification**
+  - [x] Pattern-based speaker detection in transcripts
+  - [x] Speaker statistics extraction
+  - [x] Speaker-labeled transcript formatting
+  - [x] Speaker identification dedicated tool
+  - [x] Test scripts for speaker identification
 
 ## Current Project Status
 
@@ -80,9 +93,10 @@ gantt
     Testing & Logging                 :done, test, after mcp, 2023-11-15
     Documentation                     :done, docs, after test, 2023-11-25
     Project Structure                 :done, struct, after docs, 2023-12-05
+    Code Cleanup                      :done, cleanup, after struct, 2023-12-15
     
     section Short-term (1-2 months)
-    Caching Layer                     :cache, 2023-12-15, 30d
+    Caching Layer                     :cache, 2024-01-01, 30d
     Request Error Handling            :error, after cache, 20d
     Unit Tests                        :unit, after error, 30d
     
@@ -109,7 +123,6 @@ gantt
 
 - [ ] **Enhanced Transcript Processing**
   - [ ] Add option for paragraph-based segmentation
-  - [ ] Implement speaker detection/attribution when available
   - [ ] Support for SRT export format
 
 - [ ] **Testing & Validation**
@@ -125,7 +138,6 @@ gantt
   - [ ] Support for regex-based searches
 
 - [ ] **Enhanced Metadata**
-  - [ ] Video statistics (views, likes, publish date)
   - [ ] Channel subscriber information
   - [ ] Related videos suggestions
 
@@ -158,6 +170,13 @@ gantt
 - No caching system implemented yet
 - Limited error handling for edge cases
 - No test coverage measurement
+
+## Recent Updates
+
+- Removed speaker identification functionality due to limited effectiveness and redundancy (see [Project Updates](project_updates.md))
+- Added comprehensive documentation about architectural decisions and development history
+- Simplified codebase by focusing on core functionality that provides the most value
+- Improved organization of project documentation to better reflect current state
 
 ## Contributing
 

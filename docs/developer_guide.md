@@ -154,7 +154,6 @@ sequenceDiagram
 
 4. **Testing Infrastructure**
    - `test_transcript.py`: Tests the transcript functionality with logging
-   - `test_metadata.py`: Specialized for testing metadata extraction
    - `test_chapter_markers.py`: Tests the chapter markers extraction functionality
    - `test_statistics.py`: Tests video statistics retrieval
 
@@ -232,7 +231,7 @@ This algorithm:
 
 ### Chapter Markers Extraction
 
-One of the more complex new features is the extraction of chapter markers from YouTube videos:
+One of the more complex features is the extraction of chapter markers from YouTube videos:
 
 1. **Multiple Extraction Methods**
    - YouTube doesn't provide a dedicated API for chapters
@@ -248,166 +247,126 @@ One of the more complex new features is the extraction of chapter markers from Y
 3. **Integration with Transcript**
    - Chapters are inserted at appropriate timestamps in the transcript
    - This helps users navigate long transcripts more easily
-   - Each chapter marker is clearly distinguished from the transcript text
-
-Code example for chapter-aware transcript formatting:
-
-```python
-def format_transcript_text(transcript, chapters=None):
-    # ... existing transcript formatting code ...
-    
-    # Add any chapters that should appear before this line
-    if chapters:
-        while (next_chapter_index < len(chapters) and 
-               chapters[next_chapter_index]['start_time'] <= line_time):
-            
-            chapter = chapters[next_chapter_index]
-            chapter_line = f"\n[CHAPTER] {chapter['start_time_formatted']} - {chapter['title']}\n"
-            chapter_lines.append((line_time, chapter_line))
-            next_chapter_index += 1
-    
-    # ... rest of formatting code ...
-```
 
 ### Video Statistics Extraction
 
-To enhance the metadata with usage statistics:
+The video statistics feature was added to provide more comprehensive information about the videos:
 
-1. **Extraction Approach**
-   - Statistics are extracted directly from the YouTube page HTML
-   - We use regex patterns to find view counts, likes, and upload date
-   - These are paired with the basic metadata for a complete picture
+1. **Extraction Methods**
+   - Like chapter markers, we use HTML parsing to extract statistics
+   - We target the initial data structure in the YouTube page
+   - Look for key metrics like view count, likes, and upload date
 
-2. **Resilient Design**
-   - Statistics extraction is designed to be non-critical
-   - Failures in statistics don't prevent the rest of the functionality
-   - Each statistic is extracted independently
+2. **Error Handling**
+   - Some statistics may be hidden or unavailable for certain videos
+   - Our implementation handles missing statistics gracefully
+   - Each metric is extracted independently, so a failure in one doesn't affect others
 
-```python
-def get_video_statistics(video_id):
-    # ... fetch page content ...
-    
-    # Extract view count
-    view_count_match = re.search(r'"viewCount":\s*"(\d+)"', html_content)
-    if view_count_match:
-        views = int(view_count_match.group(1))
-        stats["views"] = f"{views:,}"
-    
-    # ... extract other statistics ...
-    
-    return stats
-```
-
-## MCP Protocol Integration
-
-The MCP protocol is implemented through the `FastMCP` class from the `mcp` package. Key aspects:
-
-1. **Tool Decorators**
-   - Each functionality is exposed as a tool using `@mcp.tool()` decorator
-   - Tools provide async functions that can be called from Claude
-
-2. **Parameter Handling**
-   - Tools define parameters that Claude can understand and provide
-   - Optional parameters allow flexible usage (e.g., language selection)
-
-3. **Configuration**
-   - The server is configured in Claude Desktop's config file
-   - Uses stdio for transport (standard MCP approach)
-
-## Surprising Implementation Details
-
-### Metadata Extraction Challenges
-
-The most challenging aspect was extracting metadata without an official API:
-
-1. **HTML Parsing Fragility**
-   - YouTube's page structure can change, potentially breaking the description extraction
-   - We use simple regex patterns focused on meta tags which are less likely to change 
-
-2. **Error Handling Strategy**
-   - For metadata, we use a "best effort" approach
-   - Primary data (title, author) from oEmbed is critical
-   - Description failure is non-fatal
-
-### Timestamp Formatting
-
-The decision to merge segments into ~10 second chunks was an iterative improvement:
-
-1. **Initial Implementation**
-   - Originally returned raw YouTube segments
-   - This produced excessively granular transcripts
-
-2. **Final Approach**
-   - Merges segments for improved readability
-   - Preserves timestamps for easy video navigation
-   - Uses a threshold rather than strict 10s intervals for natural language grouping
+3. **Integration with Metadata**
+   - Statistics can be included with standard metadata
+   - This provides a more complete picture of the video context
 
 ## Development Guidelines
 
 ### Adding New Features
 
-When extending the codebase:
+When adding new features to the YouTube Transcript MCP server, consider the following guidelines:
 
-1. **New Transcript Functions**
-   - Add to `transcript_lib.py` first
-   - Test standalone with a specialized test script
-   - Then integrate into the MCP layer
-
-2. **New MCP Tools**
-   - Follow the pattern in `transcript_mcp.py`
-   - Document parameters carefully
-   - Consider both success and error paths
-
-### Testing Changes
-
-When testing modifications:
-
-1. **Use the Test Scripts**
-   - `test_transcript.py` for transcript functionality
-   - `test_metadata.py` for metadata extraction
-   - Review log files for detailed information
-
-2. **Test with Claude**
-   - Update the config file to point to your development version
-   - Test with both valid and invalid inputs
-   - Verify Claude can understand and render the responses
-
-### Common Pitfalls
-
-1. **YouTube API Limitations**
-   - Be aware that YouTube may rate-limit or block automated requests
-   - Consider adding timeouts and retries for resilience
+1. **Maintain Architecture**
+   - Keep the separation between MCP server and core library
+   - Add new functionality to the appropriate layer
+   - Update documentation to reflect architectural changes
 
 2. **Error Handling**
-   - Always wrap YouTube API calls in try/except blocks
-   - Provide meaningful error messages to users
-   - Some videos may not have transcripts or specific languages
+   - YouTube's structure can change or be inconsistent
+   - Always include fallback mechanisms and error handling
+   - Provide meaningful error messages for user feedback
 
-3. **Performance Considerations**
-   - Metadata and transcript fetching involve network calls
-   - Consider caching for repeated queries of the same video
+3. **Testing**
+   - Add appropriate test scripts for new functionality
+   - Test with various YouTube videos to ensure robustness
+   - Include logging for debugging and verification
 
-## Future Improvement Ideas
+### Feature Evaluation and Refactoring
 
-1. **Caching Layer**
-   - Add a simple file-based or Redis cache for transcript data
-   - Cache key could be video ID + language code
+As the project evolves, it's important to regularly evaluate features based on their effectiveness and value:
 
-2. **Enhanced Metadata**
-   - Extract more metadata (views, likes, publish date)
-   - May require more complex parsing or API integration
+1. **Effectiveness Assessment**
+   - Regularly test features with real-world YouTube videos
+   - Gather feedback on the utility and reliability of each feature
+   - Identify features that aren't working as intended or providing sufficient value
 
-3. **Advanced Transcript Processing**
-   - Add summarization or keyword extraction
-   - Implement search within transcripts
-   - Support for exporting to SRT or VTT formats
+2. **Refactoring Considerations**
+   - Simplify code where possible to improve maintainability
+   - Remove features that don't provide adequate value relative to their complexity
+   - Document architectural decisions and changes in the project_updates.md file
 
-4. **Reliability Improvements**
-   - Add retry logic for transient network failures
-   - Implement circuit breaker for YouTube API
+3. **Maintaining Core Value**
+   - Focus development efforts on core functionality that provides the most user value
+   - Prioritize reliability and robustness over adding new features
+   - Consider the integration with Claude when evaluating feature importance
 
-## Conclusion
+### Future Directions
 
-The YouTube Transcript MCP server demonstrates how to bridge external services with Claude through the MCP protocol. Its layered architecture separates concerns between the MCP interface, business logic, and external service integration, making it maintainable and extensible.
+The most promising areas for future development include:
 
-New developers should focus on understanding the separation between the MCP layer and transcript library, as this pattern can be applied to create additional MCP services for other data sources. 
+1. **Reliability Improvements**
+   - Add caching for frequently accessed videos
+   - Improve error handling and recovery mechanisms
+   - Add automated testing for core functionality
+
+2. **Enhanced Transcript Processing**
+   - Implement paragraph-based segmentation options
+   - Add support for SRT and other transcript formats
+   - Explore transcript summarization capabilities
+
+3. **Search and Analysis**
+   - Add search functionality within transcripts
+   - Implement topic and keyword extraction
+   - Enable cross-video analysis for related content
+
+## Troubleshooting Common Issues
+
+### YouTube API Changes
+
+YouTube frequently changes its page structure, which can affect metadata extraction. If you encounter issues:
+
+1. Check for changes in YouTube's page structure
+2. Update regex patterns in the metadata extraction functions
+3. Consider implementing additional fallback mechanisms
+
+### Transcript Unavailability
+
+Some videos may not have transcripts available. The server already handles this gracefully, but be aware that:
+
+1. User-generated captions may be inconsistently formatted
+2. Some channels disable transcripts for their videos
+3. Automatic transcripts may have poor quality
+
+### MCP Integration
+
+If Claude is having trouble communicating with the MCP server:
+
+1. Verify the configuration in claude_desktop_config.json
+2. Check that paths to the MCP script are correct
+3. Ensure the MCP server is properly responding to requests
+
+## Documentation Maintenance
+
+When updating the codebase, be sure to keep documentation in sync:
+
+1. Update README.md with any user-facing changes
+2. Update developer_guide.md with implementation details
+3. Update progress_tracker.md to reflect completed features
+4. Add significant architectural changes to project_updates.md
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Check the progress_tracker.md for potential contribution areas
+2. Fork the repository and create a feature branch
+3. Implement your changes with appropriate tests and documentation
+4. Submit a pull request with a clear description of your changes
+
+Refer to the [Project Updates](project_updates.md) document for a history of major architectural decisions and changes. 
