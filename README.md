@@ -215,6 +215,32 @@ Or:
    - Returns:
      - List of chapter markers with timestamps and titles, or a message if no chapters are found
 
+5. `search_for_claim_verification(claim, context=None)`
+   - Searches for information to help verify a claim made in a video
+   - Arguments:
+     - `claim`: The specific claim to verify (a statement that can be true or false)
+     - `context` (optional): Context from the video to help with the search
+   - Returns:
+     - JSON-formatted search results with fact-checking and general information
+
+6. `extract_transcript_segment(url, timestamp, context_seconds=30)`
+   - Extracts a specific segment of a transcript around a timestamp
+   - Arguments:
+     - `url`: YouTube video URL or ID
+     - `timestamp`: Timestamp in format MM:SS or HH:MM:SS
+     - `context_seconds` (optional): Number of seconds of context before and after (default: 30)
+   - Returns:
+     - The transcript segment with metadata
+
+7. `find_claim_in_transcript(url, claim, fuzzy_match=True)`
+   - Finds a specific claim in a transcript and returns its timestamp and context
+   - Arguments:
+     - `url`: YouTube video URL or ID
+     - `claim`: The claim to find
+     - `fuzzy_match` (optional): Whether to use fuzzy matching (default: True)
+   - Returns:
+     - Timestamp and context of the claim if found
+
 ## Transcript Format
 
 The transcript is formatted with timestamps in approximately 10-second intervals. Short segments are merged until they reach about 10 seconds in duration. Each line is prefixed with a timestamp in `[MM:SS]` format.
@@ -247,6 +273,58 @@ Chapter markers are segments of a video defined by the video creator. The server
 - A formatted time string (HH:MM:SS or MM:SS)
 
 Chapter markers can be included directly in the transcript to provide additional context and structure, or retrieved separately using the `get_chapter_markers` tool.
+
+## Fact-Checking
+
+The server provides several tools to help Claude verify information from YouTube videos:
+
+1. **Claim Verification Search**: Uses web search to find information that can verify claims made in videos
+2. **Transcript Segment Extraction**: Extracts specific segments of transcripts around timestamps for focused analysis
+3. **Claim Finding**: Locates claims within transcripts with exact or fuzzy matching
+
+When fact-checking, Claude can:
+1. First identify specific claims from the video transcript
+2. Find where in the transcript the claim appears
+3. Gather context around the claim
+4. Search for verification information
+5. Analyze the results to provide a fact-check assessment
+
+### Example Fact-Checking Flow
+
+```
+User: @transcript get_transcript https://www.youtube.com/watch?v=ELj2LLNP8Ak and summarize
+
+Claude: [fetches transcript and provides summary]
+
+User: Please fact check the claim that "AI will replace all programmers by 2025" made at 12:34 in the video
+
+Claude: Let me check this claim carefully.
+
+First, I'll extract the segment from the video to verify the exact wording...
+
+[uses extract_transcript_segment to get context]
+
+Now I'll search for information to verify this claim...
+
+[uses search_for_claim_verification to gather data]
+
+Based on my research:
+1. Expert consensus from multiple sources indicates that AI will augment programming rather than completely replace programmers by 2025
+2. While AI coding assistants are becoming more capable, they still require human oversight and direction
+3. The claim appears to be an exaggeration that contradicts current industry projections
+
+The claim that "AI will replace all programmers by 2025" is not supported by current evidence and expert analysis.
+```
+
+### Search API Configuration
+
+The search functionality requires a search API key. To configure this:
+
+1. Get an API key from a search provider (default implementation uses Serper.dev)
+2. Set the environment variable `SEARCH_API_KEY` with your API key:
+   ```
+   export SEARCH_API_KEY=your_api_key_here
+   ```
 
 ## Testing
 

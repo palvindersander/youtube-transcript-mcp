@@ -31,10 +31,18 @@
   - [x] `get_chapter_markers` tool for chapter retrieval
   - [x] Parameter handling for customization
 
+- [x] **Fact-Checking**
+  - [x] Web search integration for claim verification
+  - [x] Transcript segment extraction for focused analysis
+  - [x] Claim identification in transcripts
+  - [x] Context-aware search capabilities
+  - [x] Structured search results formatting for Claude
+
 - [x] **Testing & Logging**
   - [x] Command-line test scripts for transcript and metadata
   - [x] Test script for chapter markers extraction
   - [x] Test script for video statistics
+  - [x] Test script for fact-checking features
   - [x] Detailed logging with timestamps
   - [x] JSON and text output formats
   - [x] Organized log file storage
@@ -47,6 +55,7 @@
   - [x] Project structure documentation
   - [x] Comprehensive project updates documentation
   - [x] Feature implementation and removal details
+  - [x] Fact-checking design documentation
 
 - [x] **Project Structure & Maintenance**
   - [x] Flattened directory organization
@@ -74,6 +83,9 @@ The YouTube Transcript MCP Server is fully functional with the following capabil
 - Retrieve and include comprehensive video metadata (title, author, description)
 - Extract video statistics (view count, likes, upload date)
 - Identify and display chapter markers within videos
+- Provide fact-checking tools for claim verification
+- Extract transcript segments for focused analysis
+- Find claims within transcripts with fuzzy matching
 - Support multiple languages when available
 - MCP integration with Claude Desktop
 
@@ -94,9 +106,10 @@ gantt
     Documentation                     :done, docs, after test, 2023-11-25
     Project Structure                 :done, struct, after docs, 2023-12-05
     Code Cleanup                      :done, cleanup, after struct, 2023-12-15
+    Fact-Checking Features            :done, fact, 2024-04-05, 2024-04-15
     
     section Short-term (1-2 months)
-    Caching Layer                     :cache, 2024-01-01, 30d
+    Caching Layer                     :cache, 2024-05-01, 30d
     Request Error Handling            :error, after cache, 20d
     Unit Tests                        :unit, after error, 30d
     
@@ -170,9 +183,13 @@ gantt
 - No caching system implemented yet
 - Limited error handling for edge cases
 - No test coverage measurement
+- Search API requires separate API key configuration
 
 ## Recent Updates
 
+- Added fact-checking tools: claim verification search, transcript segment extraction, and claim finding
+- Integrated web search capabilities for verifying claims from videos
+- Enhanced transcript processing with segment extraction and fuzzy matching
 - Added dual display of chapter markers: at the top of transcript output and inline within the transcript
 - Added note for developers to run scripts with python3 instead of making them executable
 - Removed speaker identification functionality due to limited effectiveness and redundancy (see [Project Updates](project_updates.md))

@@ -1,9 +1,25 @@
 from typing import List, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 import transcript_lib as tlib
+import json
+import os
+
+# Import the new modules for fact-checking
+import search_api
+import transcript_segment
 
 # Initialize FastMCP server
 mcp = FastMCP("transcript")
+
+# Initialize search client (will use environment variable for API key)
+search_client = None
+
+# Initialize on first use to avoid errors if API key not set
+def get_search_client():
+    global search_client
+    if search_client is None:
+        search_client = search_api.create_search_client()
+    return search_client
 
 @mcp.tool()
 async def get_transcript(url: str, language_code: Optional[str] = None, include_metadata: bool = True, 
@@ -175,6 +191,104 @@ async def get_chapter_markers(url: str) -> str:
             result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
             
         return result
+    except tlib.TranscriptError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+# New tool: Search for claim verification
+@mcp.tool()
+async def search_for_claim_verification(claim: str, context: Optional[str] = None) -> str:
+    """Search for information to help verify a claim made in a video.
+    
+    Args:
+        claim: The specific claim to verify (a statement that can be true or false)
+        context: Optional context from the video to help with the search
+    """
+    try:
+        client = get_search_client()
+        results = await client.search_for_claim_verification(claim, context)
+        
+        # Format as JSON string for Claude to parse
+        return json.dumps(results, indent=2)
+    except search_api.SearchAPIError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+# New tool: Extract transcript segment
+@mcp.tool()
+async def extract_transcript_segment(url: str, timestamp: str, context_seconds: int = 30) -> str:
+    """Extract a specific segment of a transcript around a timestamp.
+    
+    Args:
+        url: YouTube video URL or ID
+        timestamp: Timestamp in format MM:SS or HH:MM:SS
+        context_seconds: Number of seconds of context before and after (default: 30)
+    """
+    try:
+        segment_data = transcript_segment.extract_transcript_segment(
+            url, timestamp, context_seconds
+        )
+        
+        # Format response as readable text
+        result = f"--- Transcript Segment at {timestamp} ---\n"
+        result += f"Video: {segment_data['video_title']}\n"
+        result += f"Author: {segment_data['author']}\n"
+        
+        if segment_data['chapter']:
+            result += f"Chapter: {segment_data['chapter']}\n"
+        
+        result += f"Context: {context_seconds} seconds before and after\n\n"
+        result += segment_data['segment']
+        
+        return result
+    except tlib.TranscriptError as e:
+        return f"Error: {str(e)}"
+    except ValueError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+# New tool: Find claim in transcript
+@mcp.tool()
+async def find_claim_in_transcript(url: str, claim: str, fuzzy_match: bool = True) -> str:
+    """Find a specific claim in a transcript and return its timestamp and context.
+    
+    Args:
+        url: YouTube video URL or ID
+        claim: The claim to find
+        fuzzy_match: Whether to use fuzzy matching (more lenient, default: True)
+    """
+    try:
+        # Extract video ID
+        video_id = tlib.get_video_id(url)
+        
+        # Get transcript
+        transcript = tlib.get_transcript(video_id)
+        
+        # Find claim
+        result = transcript_segment.find_claim_in_transcript(transcript, claim, fuzzy_match)
+        
+        if result:
+            # Format response
+            response = f"Found claim at timestamp: {result['timestamp']}\n\n"
+            response += f"Context: {result['context']}\n\n"
+            
+            if 'match_score' in result:
+                response += f"Note: This is a fuzzy match with {int(result['match_score'] * 100)}% confidence.\n"
+            
+            # Add a segment of the transcript around this point for context
+            segment_data = transcript_segment.extract_transcript_segment(
+                url, result['timestamp'], 30
+            )
+            
+            response += f"\n--- Surrounding Transcript ---\n"
+            response += segment_data['segment']
+            
+            return response
+        else:
+            return f"Claim not found in transcript. Try rephrasing or use fuzzy matching."
     except tlib.TranscriptError as e:
         return f"Error: {str(e)}"
     except Exception as e:

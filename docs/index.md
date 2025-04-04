@@ -13,15 +13,21 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 
 ### Technical Documentation
 - [Developer Guide](developer_guide.md) - Comprehensive guide for developers working on the codebase
+- [Fact-Checking Design](fact_checking_design.md) - Design document for the fact-checking feature
 
 ### Files and Components
 
 #### Core Files
 - `transcript_lib.py` - Core library with transcript processing functionality
 - `transcript_mcp.py` - MCP server implementation exposing tools to Claude
+- `transcript_segment.py` - Transcript segment extraction for fact-checking
+- `search_api.py` - Web search client for fact verification
+
+#### Test Scripts
 - `test_transcript.py` - Test script for transcript functionality
 - `test_chapter_markers.py` - Test script for chapter markers extraction
 - `test_statistics.py` - Test script for video statistics extraction
+- `test_fact_checking.py` - Test script for fact-checking features
 
 #### Configuration
 - `requirements.txt` - Python package dependencies
@@ -37,6 +43,7 @@ Welcome to the documentation for the YouTube Transcript MCP server. This project
 - **Video Metadata**: Retrieve comprehensive video information
 - **Video Statistics**: Extract view counts, likes, and upload dates
 - **Language Support**: Access transcripts in multiple languages
+- **Fact-Checking**: Tools to help Claude verify claims from video content
 
 ## Retired Features
 
@@ -63,10 +70,16 @@ The YouTube Transcript MCP server aims to provide a bridge between YouTube's tra
 - Include chapter markers in transcripts for better navigation
 - Support for multiple languages
 - MCP integration with Claude Desktop
+- Search for information to verify claims from videos
+- Extract specific transcript segments for focused analysis
+- Find claims within transcripts and provide context
 - Comprehensive logging and testing tools
 
 ## Recent Updates
 
+- Added fact-checking tools to help Claude verify claims from videos
+- Enhanced search integration for finding verification information
+- Added transcript segment extraction for focused analysis
 - Removed speaker identification functionality due to limited effectiveness
 - Added comprehensive documentation about architectural decisions
 - Simplified codebase by focusing on core functionality
