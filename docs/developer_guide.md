@@ -506,19 +506,41 @@ Search API errors are handled at multiple levels:
 
 #### Missing API Key Handling
 
-The search functionality is designed to fail gracefully when no API key is configured:
+The search functionality is designed to fail gracefully when no API key is configured.
 
-1. **Early Detection**: The `SearchAPIClient` checks for a missing API key before attempting any requests
-2. **Clear Error Message**: Raises a specific `SearchAPIError` with the message "No Search API key configured"
-3. **MCP Layer Handling**: The MCP server catches this error and returns a formatted error message to Claude
-4. **User Communication**: Claude can interpret this error and explain to the user that a search API key is needed
+#### Implementation Details
 
-This behavior has several benefits:
-- Users can still use transcript features without search functionality
-- Clear error messages make troubleshooting easier
-- The system remains secure by not exposing sensitive error details
+1. When the `SEARCH_API_KEY` environment variable is missing:
+   - The system will check if mock mode is enabled
+   - If mock mode is disabled, it will throw a `SearchAPIError` with a clear error message
+   - If mock mode is enabled, it will use mock results instead
 
-For testing this error handling, use the `test_missing_api_key.py` script which reproduces the error condition and verifies that it's handled correctly.
+2. This behavior is implemented in:
+   - `search_api.py`: Contains the core logic for handling missing API keys
+   - `transcript_mcp.py`: Has logic to determine if mock mode should be used based on API key availability
+
+#### Mock Mode Implementation
+
+Mock mode is a feature that enables testing and demonstration of the fact-checking capabilities without requiring a real API key:
+
+1. **Configuration**:
+   - By default, the system will automatically use mock mode when no API key is available
+   - It can also be explicitly enabled by passing `mock_mode=True` when creating the search client
+
+2. **How It Works**:
+   - The `SearchAPIClient` class in `search_api.py` contains a `_generate_mock_results` method
+   - This method creates a structured response that mimics a real search API response
+   - For queries containing "fact check," it generates a mock knowledge graph with claim verification details
+
+3. **User Notification**:
+   - When mock mode is active, a clear notice is prepended to search results
+   - This ensures users understand they are seeing simulated, not real, search results
+
+4. **Testing**:
+   - The `test_missing_api_key.py` script tests both error handling and mock mode functionality
+   - It simulates scenarios with and without an API key, with and without mock mode
+
+This implementation ensures the system can be tested end-to-end without an API key while still providing useful functionality to users.
 
 ### Transcript Segment Extraction
 

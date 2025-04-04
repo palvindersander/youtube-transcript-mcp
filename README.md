@@ -423,19 +423,33 @@ The search functionality requires a search API key. To configure this:
    export SEARCH_API_KEY=your_api_key_here
    ```
 
+#### Mock Mode for Testing
+
+The fact-checking feature includes a mock mode that allows testing and demonstration without requiring a real API key. When no API key is configured, the system can automatically switch to mock mode, which:
+
+1. Generates realistic-looking search results based on the query
+2. Clearly indicates that mock results are being used
+3. Maintains the same data structure as real search results
+
+This enables users to see how the fact-checking tools work without needing to configure an API key. In a Claude conversation, mock results will be preceded by a clear notice:
+
+```
+[NOTE: Using mock search results for demonstration purposes. To use real search results, set the SEARCH_API_KEY environment variable.]
+```
+
+To explicitly test mock mode, run:
+```
+python3 test_missing_api_key.py
+```
+
 #### Important Note About Missing API Keys
 
-If no API key is configured, the search-based fact-checking tools will return an error message:
+If no API key is configured and mock mode is disabled, the search-based fact-checking tools will return an error message:
 ```
 Error: No Search API key configured
 ```
 
-When using Claude, this error will be clearly visible in the response, allowing Claude to explain to the user that a search API key is needed to perform fact-checking. This behavior is intentional - the MCP server remains functional for transcript retrieval even if search functionality is unavailable.
-
-To test API key error handling, you can run:
-```
-python3 test_missing_api_key.py
-```
+This behavior is intentional - the MCP server remains functional for transcript retrieval even if search functionality is unavailable.
 
 ## Testing
 

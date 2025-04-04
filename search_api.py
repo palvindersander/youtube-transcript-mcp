@@ -26,15 +26,20 @@ class SearchAPIError(Exception):
 class SearchAPIClient:
     """Client for web search API integration."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, mock_mode: bool = False):
         """Initialize the search API client.
         
         Args:
             api_key: API key for the search service. If None, will try to load from environment variable.
+            mock_mode: If True, will use mock responses instead of making actual API calls when no API key is available.
         """
         self.api_key = api_key or os.environ.get("SEARCH_API_KEY")
-        if not self.api_key:
-            logger.warning("No Search API key provided. Searches will not work.")
+        self.mock_mode = mock_mode
+        
+        if not self.api_key and not self.mock_mode:
+            logger.warning("No Search API key provided. Searches will not work unless mock_mode is enabled.")
+        elif not self.api_key and self.mock_mode:
+            logger.info("No Search API key provided. Using mock responses for searches.")
         
         # Configurable endpoints - default to Serper.dev
         self.search_endpoint = "https://google.serper.dev/search"
@@ -50,10 +55,14 @@ class SearchAPIClient:
             Structured search results
             
         Raises:
-            SearchAPIError: If the search fails
+            SearchAPIError: If the search fails and mock_mode is disabled
         """
         if not self.api_key:
-            raise SearchAPIError("No Search API key configured")
+            if self.mock_mode:
+                # Generate a mock response for testing
+                return self._generate_mock_results(query, num_results)
+            else:
+                raise SearchAPIError("No Search API key configured")
         
         headers = {
             "X-API-KEY": self.api_key,
@@ -81,6 +90,54 @@ class SearchAPIClient:
         
         except aiohttp.ClientError as e:
             raise SearchAPIError(f"Search request failed: {str(e)}")
+    
+    def _generate_mock_results(self, query: str, num_results: int = 10) -> Dict[str, Any]:
+        """Generate mock search results for testing purposes.
+        
+        Args:
+            query: The search query
+            num_results: Number of results to return
+            
+        Returns:
+            Mock search results in the same format as real results
+        """
+        # Construct a basic mock response
+        mock_response = {
+            "searchParameters": {
+                "q": query,
+                "gl": "us",
+                "hl": "en",
+                "num": num_results
+            },
+            "organic": []
+        }
+        
+        # Create mock organic results based on the query
+        for i in range(min(num_results, 5)):  # Limit to 5 results for simplicity
+            mock_result = {
+                "title": f"Mock Result {i+1} for {query}",
+                "link": f"https://example.com/result-{i+1}",
+                "snippet": f"This is a mock search result {i+1} for query: {query}. Created for testing purposes when no API key is available.",
+                "position": i+1,
+                "source": "example.com",
+                "date": datetime.now().strftime("%Y-%m-%d")
+            }
+            mock_response["organic"].append(mock_result)
+            
+        # Add a mock knowledge graph for certain queries
+        if "fact check" in query.lower():
+            mock_response["knowledgeGraph"] = {
+                "title": f"Fact Check: {query.replace('fact check', '').strip()}",
+                "type": "Fact Check Result",
+                "description": "This is a mock fact check result generated for testing purposes. In a real search, this would contain relevant fact-checking information.",
+                "attributes": {
+                    "Source": "Mock Fact Checker",
+                    "Rating": "Unverified - Mock Data",
+                    "Date": datetime.now().strftime("%Y-%m-%d")
+                }
+            }
+            
+        return mock_response
         
     def _format_search_results(self, raw_results: Dict[str, Any], query: str) -> Dict[str, Any]:
         """Format raw search results into a structured format for fact checking.
@@ -151,19 +208,21 @@ class SearchAPIClient:
             "claim": claim,
             "context": context,
             "fact_check_results": results,
-            "information_results": direct_results
+            "information_results": direct_results,
+            "mock_mode": self.mock_mode
         }
         
         return combined_results
         
 # Helper function to create a new instance with default settings
-def create_search_client(api_key: Optional[str] = None) -> SearchAPIClient:
+def create_search_client(api_key: Optional[str] = None, mock_mode: bool = False) -> SearchAPIClient:
     """Create a new search client instance with default settings.
     
     Args:
         api_key: Optional API key (will use env variable if not provided)
+        mock_mode: If True, will use mock responses when no API key is available
         
     Returns:
         Configured SearchAPIClient instance
     """
-    return SearchAPIClient(api_key) 
+    return SearchAPIClient(api_key, mock_mode) 

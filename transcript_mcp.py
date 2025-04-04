@@ -18,7 +18,10 @@ search_client = None
 def get_search_client():
     global search_client
     if search_client is None:
-        search_client = search_api.create_search_client()
+        api_key = os.environ.get("SEARCH_API_KEY")
+        # Enable mock mode if no API key is available
+        mock_mode = api_key is None
+        search_client = search_api.create_search_client(api_key=api_key, mock_mode=mock_mode)
     return search_client
 
 @mcp.tool()
@@ -208,6 +211,13 @@ async def search_for_claim_verification(claim: str, context: Optional[str] = Non
     try:
         client = get_search_client()
         results = await client.search_for_claim_verification(claim, context)
+        
+        # Add a note if using mock mode
+        if results.get("mock_mode", False):
+            mock_notice = "\n[NOTE: Using mock search results for demonstration purposes. To use real search results, set the SEARCH_API_KEY environment variable.]\n"
+            # Format as JSON string for Claude to parse
+            json_results = json.dumps(results, indent=2)
+            return mock_notice + json_results
         
         # Format as JSON string for Claude to parse
         return json.dumps(results, indent=2)
