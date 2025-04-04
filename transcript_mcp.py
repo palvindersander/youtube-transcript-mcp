@@ -6,13 +6,14 @@ import transcript_lib as tlib
 mcp = FastMCP("transcript")
 
 @mcp.tool()
-async def get_transcript(url: str, language_code: Optional[str] = None, include_metadata: bool = True) -> str:
+async def get_transcript(url: str, language_code: Optional[str] = None, include_metadata: bool = True, include_chapters: bool = True) -> str:
     """Get the transcript for a YouTube video with timestamps in ~10 second intervals.
     
     Args:
         url: YouTube video URL or ID
         language_code: Optional language code (e.g., 'en', 'es', 'fr')
         include_metadata: Whether to include video metadata in the response
+        include_chapters: Whether to include chapter markers in the transcript
     """
     try:
         # Extract video ID from URL
@@ -27,8 +28,36 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
                 result += f"--- Video Metadata ---\n"
                 result += f"Title: {metadata['title']}\n"
                 result += f"Author: {metadata['author']}\n"
-                result += f"Channel URL: {metadata['channel_url']}\n\n"
-                result += f"Description:\n{metadata['description']}\n\n"
+                result += f"Channel URL: {metadata['channel_url']}\n"
+                
+                # Get video statistics if available
+                try:
+                    stats = tlib.get_video_statistics(video_id)
+                    if stats.get('views'):
+                        result += f"View count: {stats['views']}\n"
+                    if stats.get('likes'):
+                        result += f"Likes: {stats['likes']}\n"
+                    if stats.get('upload_date'):
+                        result += f"Upload date: {stats['upload_date']}\n"
+                except Exception:
+                    # Skip statistics if not available
+                    pass
+                
+                result += f"\nDescription:\n{metadata['description']}\n\n"
+                
+                # Include chapters section if requested and available
+                if include_chapters:
+                    try:
+                        chapters = tlib.get_chapter_markers(video_id)
+                        if chapters:
+                            result += f"--- Chapters ---\n"
+                            for chapter in chapters:
+                                result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
+                            result += "\n"
+                    except Exception:
+                        # Skip chapters section if not available
+                        pass
+                
                 result += "--- Transcript ---\n"
             except tlib.TranscriptError as e:
                 result += f"Error fetching metadata: {str(e)}\n\n"
@@ -36,8 +65,17 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
         # Get transcript
         transcript = tlib.get_transcript(video_id, language_code)
         
-        # Format with timestamps in ~10 second intervals
-        result += tlib.format_transcript_text(transcript)
+        # Get chapters if requested
+        chapters = None
+        if include_chapters:
+            try:
+                chapters = tlib.get_chapter_markers(video_id)
+            except Exception:
+                # Continue without chapters if there's an error
+                pass
+        
+        # Format with timestamps in ~10 second intervals and include chapters if available
+        result += tlib.format_transcript_text(transcript, chapters)
         return result
     except tlib.TranscriptError as e:
         return f"Error: {str(e)}"
@@ -45,11 +83,12 @@ async def get_transcript(url: str, language_code: Optional[str] = None, include_
         return f"Unexpected error: {str(e)}"
 
 @mcp.tool()
-async def get_video_metadata(url: str) -> str:
+async def get_video_metadata(url: str, include_statistics: bool = True) -> str:
     """Get metadata for a YouTube video.
     
     Args:
         url: YouTube video URL or ID
+        include_statistics: Whether to include view count, likes, and other stats
     """
     try:
         # Extract video ID from URL
@@ -63,8 +102,25 @@ async def get_video_metadata(url: str) -> str:
         result += f"Title: {metadata['title']}\n"
         result += f"Author: {metadata['author']}\n" 
         result += f"Channel URL: {metadata['channel_url']}\n"
-        result += f"Thumbnail URL: {metadata['thumbnail_url']}\n\n"
-        result += f"Description:\n{metadata['description']}"
+        result += f"Thumbnail URL: {metadata['thumbnail_url']}\n"
+        
+        # Include statistics if requested
+        if include_statistics:
+            try:
+                stats = tlib.get_video_statistics(video_id)
+                if stats:
+                    result += "\n--- Video Statistics ---\n"
+                    if stats.get('views'):
+                        result += f"View count: {stats['views']}\n"
+                    if stats.get('likes'):
+                        result += f"Likes: {stats['likes']}\n"
+                    if stats.get('upload_date'):
+                        result += f"Upload date: {stats['upload_date']}\n"
+            except Exception:
+                # Skip statistics if there's an error
+                pass
+        
+        result += f"\nDescription:\n{metadata['description']}"
         
         return result
     except tlib.TranscriptError as e:
@@ -96,6 +152,34 @@ async def list_transcript_languages(url: str) -> str:
             if lang['is_generated']:
                 result += " (auto-generated)"
             result += "\n"
+            
+        return result
+    except tlib.TranscriptError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+@mcp.tool()
+async def get_chapter_markers(url: str) -> str:
+    """Get chapter markers for a YouTube video.
+    
+    Args:
+        url: YouTube video URL or ID
+    """
+    try:
+        # Extract video ID from URL
+        video_id = tlib.get_video_id(url)
+        
+        # Get chapter markers
+        chapters = tlib.get_chapter_markers(video_id)
+        
+        if not chapters:
+            return "No chapter markers found for this video."
+        
+        # Format the response
+        result = f"--- Chapter Markers ---\n"
+        for chapter in chapters:
+            result += f"[{chapter['start_time_formatted']}] {chapter['title']}\n"
             
         return result
     except tlib.TranscriptError as e:
