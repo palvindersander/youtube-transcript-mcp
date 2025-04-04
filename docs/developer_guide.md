@@ -245,8 +245,10 @@ One of the more complex features is the extraction of chapter markers from YouTu
    - Finally check for structured LD+JSON metadata
 
 3. **Integration with Transcript**
-   - Chapters are inserted at appropriate timestamps in the transcript
-   - This helps users navigate long transcripts more easily
+   - Chapters are displayed in two ways:
+     - As a complete list at the top of the transcript output
+     - Inserted at appropriate timestamps within the transcript text
+   - This helps users both get an overview of the video structure and navigate long transcripts more easily
 
 ### Video Statistics Extraction
 
@@ -369,4 +371,31 @@ Contributions are welcome! Please follow these steps:
 3. Implement your changes with appropriate tests and documentation
 4. Submit a pull request with a clear description of your changes
 
-Refer to the [Project Updates](project_updates.md) document for a history of major architectural decisions and changes. 
+Refer to the [Project Updates](project_updates.md) document for a history of major architectural decisions and changes.
+
+### Running and Testing Scripts
+
+1. **Running Scripts**
+   - Always use `python3` to run scripts directly, rather than making them executable:
+     ```
+     python3 script_name.py [arguments]
+     ```
+   - This ensures consistent execution across different development environments
+
+2. **Test First Development**
+   - Create or update test scripts before modifying core functionality
+   - Use the provided test scripts to verify changes:
+     ```
+     python3 test_transcript.py [video_id]
+     python3 test_chapter_markers.py [video_id]
+     python3 test_statistics.py [video_id]
+     python3 test_top_chapter_markers.py [video_id]
+     ```
+
+3. **Logging Results**
+   - All test scripts automatically save results to the `logs/` directory
+   - Review these logs to verify changes and understand behavior
+
+### Code Organization
+
+// ... existing code ... 

@@ -2,6 +2,34 @@
 
 This document tracks significant changes, feature implementations, and architectural decisions made throughout the development of the YouTube Transcript MCP Server.
 
+## Feature: Dual Chapter Markers Display (Latest)
+
+### Background
+While the original chapter markers implementation integrated chapters into the transcript text, users wanted a way to quickly see all chapters before diving into the transcript content. To enhance usability, we implemented a dual display approach for chapter markers.
+
+### Implementation
+The enhanced chapter markers feature now displays chapter information in two places:
+1. As a complete list at the top of the transcript output, immediately after the video metadata
+2. Integrated inline within the transcript text at appropriate timestamps (as implemented previously)
+
+This dual approach gives users both an overview of the video structure and contextual chapter transitions when reading the transcript.
+
+### Key Components Added/Modified
+1. **Functions in transcript_mcp.py**:
+   - Modified `get_transcript` to display the complete list of chapter markers at the top
+   
+2. **Test Files**:
+   - Added `test_top_chapter_markers.py` for testing the dual display functionality
+
+### Development Guidelines
+1. **Run scripts with python3**: Updated documentation to emphasize using `python3` to run scripts rather than making them executable
+2. **Thorough testing**: Added new test script to verify the feature works correctly
+
+### Learnings
+1. **User Experience**: Providing multiple ways to view the same information caters to different user needs and workflows
+2. **Documentation Importance**: Clear documentation of both features and development practices improves contributor onboarding
+3. **Code Organization**: Minimizing changes to core library functions while enhancing MCP layer maintained clean separation of concerns
+
 ## Feature: Video Statistics Implementation (Latest)
 
 ### Background
@@ -146,4 +174,4 @@ Based on our experiences and learnings, future development will focus on:
 3. **User Experience**:
    - More formatting options (SRT, plain text, etc.)
    - Improved navigation through long transcripts
-   - Better integration with Claude's workflow 
+   - Better integration with Claude's workflow

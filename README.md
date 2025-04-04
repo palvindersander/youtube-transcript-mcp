@@ -219,7 +219,11 @@ Or:
 
 The transcript is formatted with timestamps in approximately 10-second intervals. Short segments are merged until they reach about 10 seconds in duration. Each line is prefixed with a timestamp in `[MM:SS]` format.
 
-When chapter markers are available and included, they are inserted at appropriate positions in the transcript with a format like `[CHAPTER] MM:SS - Chapter Title`. This makes it easier to navigate through the content.
+When chapter markers are available and included, they are displayed in two ways:
+1. As a complete list at the top of the response under the "Chapter Markers" section
+2. Inserted at appropriate positions in the transcript with a format like `[CHAPTER] MM:SS - Chapter Title`
+
+This dual approach makes it easier to get an overview of the video structure while also seeing chapter transitions as you read through the content.
 
 ## Video Metadata and Statistics
 
@@ -246,51 +250,26 @@ Chapter markers can be included directly in the transcript to provide additional
 
 ## Testing
 
-You can test the core functionality with the included test script:
+You can test the core functionality with the included test scripts:
 
 ```
-python3 test_transcript.py https://www.youtube.com/watch?v=ELj2LLNP8Ak
+python3 test_transcript.py [video_id] [language_code]
+python3 test_chapter_markers.py [video_id]
+python3 test_statistics.py [video_id]
+python3 test_top_chapter_markers.py [video_id] [language_code]
 ```
 
-Or with a specific language:
+Notes:
+- Always run test scripts with `python3` rather than making them executable
+- The `video_id` parameter can be a full YouTube URL or just the ID
+- If no `video_id` is provided, a default testing video will be used
+- Log files with timestamps are saved in the `logs/` directory
 
-```
-python3 test_transcript.py https://www.youtube.com/watch?v=ELj2LLNP8Ak en
-```
+## Development Guidelines
 
-### Logging Test Results
+When developing for this project:
 
-The test script supports saving results to a log file:
-
-```
-python3 test_transcript.py <youtube_url_or_id> [language_code] [log_file]
-```
-
-If no log file is specified, it will automatically create one named `logs/transcript_<video_id>_<timestamp>.log` in the logs directory.
-
-The log file contains:
-- Video metadata (title, author, description)
-- Complete transcript with timestamps
-- Raw transcript data in JSON format (with precise timing information)
-- List of available languages
-- Timestamp and video metadata
-
-### Testing Chapter Markers and Statistics
-
-You can test the chapter markers extraction with:
-
-```
-python3 test_chapter_markers.py https://www.youtube.com/watch?v=pvkTC2xIbeY
-```
-
-And video statistics retrieval with:
-
-```
-python3 test_statistics.py https://www.youtube.com/watch?v=ELj2LLNP8Ak
-```
-
-For more detailed analysis, you can add the debug flag to the chapter markers test:
-
-```
-python3 test_chapter_markers.py https://www.youtube.com/watch?v=pvkTC2xIbeY --debug
-```
+1. Always run Python scripts using `python3` rather than making them executable
+2. Test changes thoroughly with the provided test scripts
+3. Document any significant changes in the appropriate documentation files
+4. Follow the existing code style for consistency

@@ -173,6 +173,8 @@ gantt
 
 ## Recent Updates
 
+- Added dual display of chapter markers: at the top of transcript output and inline within the transcript
+- Added note for developers to run scripts with python3 instead of making them executable
 - Removed speaker identification functionality due to limited effectiveness and redundancy (see [Project Updates](project_updates.md))
 - Added comprehensive documentation about architectural decisions and development history
 - Simplified codebase by focusing on core functionality that provides the most value
