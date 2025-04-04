@@ -2,6 +2,8 @@
 
 An MCP server for fetching transcripts from YouTube videos directly in Claude.
 
+> **Documentation**: For complete documentation, see the [Documentation Index](docs/index.md).
+
 ## Architecture
 
 ### System Overview
@@ -101,6 +103,16 @@ sequenceDiagram
     MCPServer-->>Claude: Return complete response
     Claude-->>User: Display transcript with metadata
 ```
+
+## Project Status and Roadmap
+
+This project is actively maintained. For information about:
+- Current implementation status
+- Completed features
+- Planned enhancements
+- Roadmap for future development
+
+See the [Progress Tracker](docs/progress_tracker.md).
 
 ## Setup Instructions
 
